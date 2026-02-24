@@ -130,6 +130,14 @@ ${STANDARD_TERMS.map((t: string, i: number) => `${i + 1}. ${t}`).join("\n")}`;
         agreement_text: agreementText,
       });
 
+      // Notify the agency to sign the Care Agreement
+      await supabase.from("notifications").insert({
+        recipient_id: bid.bidder_id,
+        type: "agreement_pending",
+        message: "A customer has accepted your bid — please review and sign the Care Agreement to activate the job",
+        related_job_id: jobData.id,
+      });
+
       toast.success("Bid accepted! Please review and agree to the Care Agreement.");
       navigate(`/agreement/${jobData.id}`);
     } catch (err: any) {

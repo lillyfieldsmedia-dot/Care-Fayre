@@ -81,6 +81,7 @@ export default function JobDetailPage() {
   const [tsNotes, setTsNotes] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [customerProfile, setCustomerProfile] = useState<{ full_name: string; phone: string | null } | null>(null);
+  const [contract, setContract] = useState<{ customer_agreed_at: string | null; agency_agreed_at: string | null } | null>(null);
 
   useEffect(() => {
     loadData();
@@ -91,16 +92,18 @@ export default function JobDetailPage() {
     if (!user || !id) return;
     setUserId(user.id);
 
-    const [jobRes, tsRes, payRes] = await Promise.all([
+    const [jobRes, tsRes, payRes, contractRes] = await Promise.all([
       supabase.from("jobs").select("*, care_requests(postcode, care_types, description, frequency, recipient_name, recipient_dob, recipient_address, relationship_to_holder), agency_profiles(id, agency_name, cqc_rating, cqc_verified)").eq("id", id).single(),
       supabase.from("timesheets").select("*").eq("job_id", id).order("week_starting", { ascending: false }),
       supabase.from("payments").select("*").eq("job_id", id).order("created_at", { ascending: false }),
+      supabase.from("contracts").select("customer_agreed_at, agency_agreed_at").eq("job_id", id).maybeSingle(),
     ]);
 
     const jobData = (jobRes.data as any as JobDetail) || null;
     setJob(jobData);
     setTimesheets((tsRes.data as Timesheet[]) || []);
     setPayments((payRes.data as Payment[]) || []);
+    setContract((contractRes.data as any) || null);
 
     // Fetch customer profile for account holder name & phone
     if (jobData) {
@@ -171,6 +174,8 @@ export default function JobDetailPage() {
   const showRecipientDetails = isAgency && (job.status === "active" || job.status === "completed");
   const recipientName = job.care_requests?.recipient_name;
   const holderName = customerProfile?.full_name;
+  const agencyNeedsToSign = isAgency && job.status === "pending" && contract && !contract.agency_agreed_at;
+  const showAgreementButton = contract && contract.customer_agreed_at;
 
   return (
     <div className="min-h-screen bg-background">
@@ -179,6 +184,25 @@ export default function JobDetailPage() {
         <Link to={isAgency ? "/agency-dashboard" : "/dashboard"} className="mb-6 inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
           <ArrowLeft className="h-4 w-4" /> Back to Dashboard
         </Link>
+        {/* Pending Agreement Banner for Agency */}
+        {agencyNeedsToSign && (
+          <div className="mb-6 rounded-xl border border-destructive/30 bg-destructive/5 p-5">
+            <div className="flex items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <AlertCircle className="h-5 w-5 shrink-0 text-destructive" />
+                <div>
+                  <p className="font-medium text-foreground">Action required: Please sign the Care Agreement to activate this job</p>
+                  <p className="mt-0.5 text-sm text-muted-foreground">The customer has signed. Review and sign to begin care delivery.</p>
+                </div>
+              </div>
+              <Button asChild>
+                <Link to={`/agreement/${job.id}`}>
+                  <FileText className="mr-2 h-4 w-4" /> Review &amp; Sign Agreement
+                </Link>
+              </Button>
+            </div>
+          </div>
+        )}
 
         {/* Job Summary */}
         <div className="rounded-xl border border-border bg-card p-6">
@@ -245,14 +269,16 @@ export default function JobDetailPage() {
             </div>
           </div>
 
-          {/* View Care Agreement Button */}
-          <div className="mt-4">
-            <Button asChild variant="outline" className="w-full">
-              <Link to={`/agreement/${job.id}`}>
-                <FileText className="mr-2 h-4 w-4" /> View Care Agreement
-              </Link>
-            </Button>
-          </div>
+          {/* View Care Agreement Button — visible once customer has signed */}
+          {showAgreementButton && (
+            <div className="mt-4">
+              <Button asChild variant="outline" className="w-full">
+                <Link to={`/agreement/${job.id}`}>
+                  <FileText className="mr-2 h-4 w-4" /> View Care Agreement
+                </Link>
+              </Button>
+            </div>
+          )}
         </div>
 
         {/* Care Recipient Details — agency only, active/completed jobs */}
