@@ -39,13 +39,13 @@ type JobData = {
   } | null;
 };
 
-const STANDARD_TERMS = [
-  "Either party may cancel with 2 weeks' written notice via the platform.",
-  "Payment is collected weekly following timesheet approval.",
-  "The hourly rate is locked for the duration of this agreement and cannot be changed without a new agreement.",
-  "CareMatch UK acts as payment intermediary only and is not liable for the delivery of care services.",
-  "The agency confirms they hold current public liability insurance and all staff are DBS checked.",
-  "Any safeguarding concerns must be reported immediately to the relevant local authority.",
+const AGREEMENT_TERMS = [
+  "Both parties have agreed to the hourly rate above, which is fixed and cannot be changed for the duration of this care arrangement.",
+  "The Agency will contact the Customer to arrange an initial care assessment.",
+  "Following the assessment, both parties must confirm on CareMatch that they wish to proceed before care begins.",
+  "Either party may withdraw following the assessment with no penalty and no charges.",
+  "Once care begins, the Agency will submit weekly timesheets via CareMatch. Payment will be collected by CareMatch and disbursed to the Agency minus a platform fee.",
+  "This agreement does not constitute a contract of care. A separate care contract may be provided by the Agency at the assessment stage.",
 ];
 
 export default function CareAgreement() {
@@ -191,95 +191,43 @@ export default function CareAgreement() {
 
           {/* Agreement Details */}
           <div className="mt-6 space-y-6">
-            {/* Account Holder */}
-            <section>
-              <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Account Holder</h3>
-              <div className="mt-2 grid gap-3 sm:grid-cols-2">
-                <div className="rounded-lg border border-border p-3">
-                  <p className="text-xs text-muted-foreground">Full Name</p>
-                  <p className="font-medium text-foreground">{holderProfile?.full_name || "—"}</p>
-                </div>
-                <div className="rounded-lg border border-border p-3">
-                  <p className="text-xs text-muted-foreground">Address</p>
-                  <p className="font-medium text-foreground">{holderProfile?.postcode || "—"}</p>
-                </div>
-              </div>
-            </section>
+            {/* Preamble */}
+            <p className="text-sm text-foreground leading-relaxed">
+              This Rate Agreement is between <span className="font-medium">{holderProfile?.full_name || "—"}</span> ("the Customer") and <span className="font-medium">{job.agency_profiles?.agency_name || "—"}</span> ("the Agency"), facilitated by CareMatch.
+            </p>
 
-            {/* Care Recipient */}
+            {/* Key Details */}
             <section>
-              <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Care Recipient</h3>
+              <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Agreed Terms</h3>
               <div className="mt-2 grid gap-3 sm:grid-cols-2">
                 <div className="rounded-lg border border-border p-3">
-                  <p className="text-xs text-muted-foreground">Full Name</p>
-                  <p className="font-medium text-foreground">{job.care_requests?.recipient_name || "—"}</p>
-                </div>
-                <div className="rounded-lg border border-border p-3">
-                  <p className="text-xs text-muted-foreground">Date of Birth</p>
-                  <p className="font-medium text-foreground">{job.care_requests?.recipient_dob ? new Date(job.care_requests.recipient_dob).toLocaleDateString() : "—"}</p>
-                </div>
-                <div className="rounded-lg border border-border p-3 sm:col-span-2">
-                  <p className="text-xs text-muted-foreground">Care Address</p>
-                  <p className="font-medium text-foreground whitespace-pre-line">{job.care_requests?.recipient_address || "—"}</p>
-                </div>
-                <div className="rounded-lg border border-border p-3">
-                  <p className="text-xs text-muted-foreground">Relationship to Account Holder</p>
-                  <p className="font-medium text-foreground">{job.care_requests?.relationship_to_holder || "—"}</p>
-                </div>
-              </div>
-            </section>
-
-            {/* Agency */}
-            <section>
-              <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Agency</h3>
-              <div className="mt-2 grid gap-3 sm:grid-cols-2">
-                <div className="rounded-lg border border-border p-3">
-                  <p className="text-xs text-muted-foreground">Agency Name</p>
-                  <p className="font-medium text-foreground">{job.agency_profiles?.agency_name || "—"}</p>
-                </div>
-                <div className="rounded-lg border border-border p-3">
-                  <p className="text-xs text-muted-foreground">CQC Location ID</p>
-                  <p className="font-medium text-foreground">{job.agency_profiles?.cqc_provider_id || "—"}</p>
-                </div>
-              </div>
-            </section>
-
-            {/* Care Details */}
-            <section>
-              <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Care Details</h3>
-              <div className="mt-2 grid gap-3 sm:grid-cols-2">
-                <div className="rounded-lg border border-border p-3">
-                  <p className="text-xs text-muted-foreground">Locked Hourly Rate</p>
+                  <p className="text-xs text-muted-foreground">Agreed Hourly Rate</p>
                   <p className="font-serif text-lg font-medium text-foreground">£{Number(job.locked_hourly_rate).toFixed(2)}/hr</p>
                 </div>
                 <div className="rounded-lg border border-border p-3">
-                  <p className="text-xs text-muted-foreground">Hours per Week</p>
+                  <p className="text-xs text-muted-foreground">Estimated Hours per Week</p>
                   <p className="font-medium text-foreground">{job.agreed_hours_per_week}</p>
                 </div>
                 <div className="rounded-lg border border-border p-3">
-                  <p className="text-xs text-muted-foreground">Frequency</p>
-                  <p className="font-medium text-foreground">{job.care_requests?.frequency || "—"}</p>
-                </div>
-                <div className="rounded-lg border border-border p-3">
-                  <p className="text-xs text-muted-foreground">Start Date</p>
-                  <p className="font-medium text-foreground">{job.start_date ? new Date(job.start_date).toLocaleDateString() : "TBD"}</p>
-                </div>
-                <div className="rounded-lg border border-border p-3 sm:col-span-2">
-                  <p className="text-xs text-muted-foreground">Care Types</p>
+                  <p className="text-xs text-muted-foreground">Care Type</p>
                   <div className="mt-1 flex flex-wrap gap-1">
                     {job.care_requests?.care_types.map((ct) => (
                       <span key={ct} className="rounded bg-secondary px-2 py-0.5 text-xs text-secondary-foreground">{ct}</span>
                     ))}
                   </div>
                 </div>
+                <div className="rounded-lg border border-border p-3">
+                  <p className="text-xs text-muted-foreground">Start Date</p>
+                  <p className="font-medium text-foreground">{job.start_date ? new Date(job.start_date).toLocaleDateString() : "To Be Confirmed"}</p>
+                </div>
               </div>
             </section>
 
-            {/* Standard Terms */}
+            {/* Agreement Terms */}
             <section>
-              <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Standard Terms</h3>
+              <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">This Agreement Confirms That</h3>
               <ol className="mt-2 space-y-2">
-                {STANDARD_TERMS.map((term, i) => (
+                {AGREEMENT_TERMS.map((term, i) => (
                   <li key={i} className="flex gap-2 text-sm text-foreground">
                     <span className="shrink-0 font-medium text-muted-foreground">{i + 1}.</span>
                     {term}
@@ -326,7 +274,7 @@ export default function CareAgreement() {
                     className="mt-0.5"
                   />
                   <label htmlFor="agree" className="text-sm text-foreground cursor-pointer">
-                    I agree to this Rate Agreement and all the standard terms listed above.
+                    I agree to this Rate Agreement and all the terms listed above.
                   </label>
                 </div>
                 <Button
