@@ -39,7 +39,7 @@ export default function AgencyProfile() {
     Promise.all([
       supabase
         .from("agency_profiles")
-        .select("id, agency_name, bio, website, phone, cqc_rating, cqc_provider_id, cqc_verified, cqc_explanation, years_in_operation, active_jobs_count")
+        .select("id, agency_name, bio, website, phone, cqc_rating, cqc_provider_id, cqc_verified, cqc_explanation, years_in_operation")
         .eq("id", id)
         .single(),
       supabase
@@ -47,8 +47,14 @@ export default function AgencyProfile() {
         .select("id, star_rating, comment, created_at, customer_id")
         .eq("agency_profile_id", id)
         .order("created_at", { ascending: false }),
-    ]).then(async ([profileRes, reviewsRes]) => {
-      setProfile(profileRes.data as AgencyProfileData | null);
+      supabase
+        .from("jobs")
+        .select("id", { count: "exact", head: true })
+        .eq("agency_profile_id", id)
+        .eq("status", "active"),
+    ]).then(async ([profileRes, reviewsRes, jobsCountRes]) => {
+      const profileData = profileRes.data ? { ...profileRes.data, active_jobs_count: jobsCountRes.count ?? 0 } : null;
+      setProfile(profileData as AgencyProfileData | null);
 
       // Fetch reviewer names from profiles
       const rawReviews = (reviewsRes.data || []) as any[];
