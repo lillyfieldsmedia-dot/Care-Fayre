@@ -2,9 +2,10 @@ import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Header } from "@/components/Header";
 import { supabase } from "@/integrations/supabase/client";
-import { MapPin, Clock, Briefcase, TrendingUp } from "lucide-react";
+import { MapPin, Clock, Briefcase, TrendingUp, AlertCircle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { EditAgencyProfileDialog } from "@/components/EditAgencyProfileDialog";
+import { Button } from "@/components/ui/button";
 
 type CareRequest = {
   id: string;
@@ -85,6 +86,27 @@ export default function AgencyDashboard() {
             />
           )}
         </div>
+
+        {/* Profile completion banner */}
+        {agencyProfile && (!agencyProfile.bio || !agencyProfile.phone) && (
+          <div className="mt-6 flex items-start gap-3 rounded-xl border border-primary/30 bg-primary/5 p-5">
+            <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
+            <div className="flex-1">
+              <p className="font-medium text-foreground">Complete your profile to start receiving care requests</p>
+              <p className="mt-1 text-sm text-muted-foreground">Add your contact details, bio, and service area so customers can find and trust your agency.</p>
+            </div>
+            <EditAgencyProfileDialog
+              profileId={agencyProfile.id}
+              initial={{
+                phone: agencyProfile.phone || "",
+                website: agencyProfile.website || "",
+                bio: agencyProfile.bio || "",
+                cqc_explanation: agencyProfile.cqc_explanation || "",
+              }}
+              onSaved={loadData}
+            />
+          </div>
+        )}
 
         {/* Stats */}
         <div className="mt-8 grid gap-4 sm:grid-cols-4">
