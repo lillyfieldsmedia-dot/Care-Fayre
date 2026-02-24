@@ -28,6 +28,7 @@ type AgencyJob = {
   care_requests: {
     postcode: string;
     care_types: string[];
+    recipient_name: string;
   } | null;
 };
 
@@ -48,7 +49,7 @@ export default function AgencyDashboard() {
 
     const [reqResult, jobResult, apResult] = await Promise.all([
       supabase.from("care_requests").select("*").eq("status", "open").order("created_at", { ascending: false }),
-      supabase.from("jobs").select("*, care_requests(postcode, care_types)").eq("agency_id", user.id).order("created_at", { ascending: false }),
+      supabase.from("jobs").select("*, care_requests(postcode, care_types, recipient_name)").eq("agency_id", user.id).order("created_at", { ascending: false }),
       supabase.from("agency_profiles").select("id, phone, website, bio, cqc_explanation").eq("user_id", user.id).single(),
     ]);
 
@@ -204,8 +205,7 @@ export default function AgencyDashboard() {
                     >
                       <div className="flex flex-col gap-1">
                         <div className="flex items-center gap-2">
-                          <MapPin className="h-4 w-4 text-primary" />
-                          <span className="font-medium text-foreground">{job.care_requests?.postcode}</span>
+                          <span className="font-medium text-foreground">{job.care_requests?.recipient_name || job.care_requests?.postcode}</span>
                           <Badge className={job.status === "active" ? "bg-accent text-accent-foreground" : "bg-muted"}>{job.status}</Badge>
                         </div>
                         <div className="flex flex-wrap gap-1">
@@ -213,7 +213,7 @@ export default function AgencyDashboard() {
                             <span key={ct} className="rounded bg-secondary px-2 py-0.5 text-xs text-secondary-foreground">{ct}</span>
                           ))}
                         </div>
-                        <p className="text-sm text-muted-foreground">{job.agreed_hours_per_week} hrs/week · starts {job.start_date ? new Date(job.start_date).toLocaleDateString() : "TBD"}</p>
+                        <p className="text-sm text-muted-foreground"><MapPin className="mr-1 inline h-3 w-3" />{job.care_requests?.postcode} · {job.agreed_hours_per_week} hrs/week · starts {job.start_date ? new Date(job.start_date).toLocaleDateString() : "TBD"}</p>
                       </div>
                       <p className="font-serif text-xl text-foreground">£{Number(job.locked_hourly_rate).toFixed(2)}/hr</p>
                     </Link>

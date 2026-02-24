@@ -16,6 +16,8 @@ const CARE_TYPES = [
 
 const FREQUENCIES = ["Daily", "Weekdays Only", "Weekends Only", "3x Per Week", "Custom"];
 
+const RELATIONSHIPS = ["Self", "Parent", "Spouse/Partner", "Grandparent", "Sibling", "Child", "Other Family Member", "Friend", "Other"];
+
 export default function CreateRequest() {
   const navigate = useNavigate();
   const [step, setStep] = useState(1);
@@ -27,6 +29,12 @@ export default function CreateRequest() {
   const [frequency, setFrequency] = useState("Daily");
   const [startDate, setStartDate] = useState("");
   const [description, setDescription] = useState("");
+
+  // Care recipient fields
+  const [recipientName, setRecipientName] = useState("");
+  const [recipientDob, setRecipientDob] = useState("");
+  const [recipientAddress, setRecipientAddress] = useState("");
+  const [relationshipToHolder, setRelationshipToHolder] = useState("");
 
   function toggleCareType(type: string) {
     setCareTypes((prev) => prev.includes(type) ? prev.filter((t) => t !== type) : [...prev, type]);
@@ -67,7 +75,11 @@ export default function CreateRequest() {
         description,
         status: "open",
         bid_deadline: deadline,
-      });
+        recipient_name: recipientName,
+        recipient_dob: recipientDob || null,
+        recipient_address: recipientAddress,
+        relationship_to_holder: relationshipToHolder,
+      } as any);
 
       if (error) throw error;
       toast.success("Care request posted! Agencies will start bidding soon.");
@@ -81,6 +93,7 @@ export default function CreateRequest() {
 
   const canProceed = [
     () => postcode.trim().length > 0 && careTypes.length > 0,
+    () => recipientName.trim().length > 0 && recipientAddress.trim().length > 0 && relationshipToHolder.length > 0,
     () => hoursPerWeek > 0,
     () => description.trim().length > 0,
     () => true,
@@ -95,12 +108,12 @@ export default function CreateRequest() {
 
           {/* Progress */}
           <div className="mt-6 flex items-center gap-2">
-            {[1, 2, 3, 4].map((s) => (
+            {[1, 2, 3, 4, 5].map((s) => (
               <div key={s} className="flex items-center gap-2">
                 <div className={`flex h-8 w-8 items-center justify-center rounded-full text-sm font-semibold transition-colors ${step >= s ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}>
                   {step > s ? <Check className="h-4 w-4" /> : s}
                 </div>
-                {s < 4 && <div className={`h-0.5 w-8 transition-colors ${step > s ? "bg-primary" : "bg-border"}`} />}
+                {s < 5 && <div className={`h-0.5 w-8 transition-colors ${step > s ? "bg-primary" : "bg-border"}`} />}
               </div>
             ))}
           </div>
@@ -137,6 +150,42 @@ export default function CreateRequest() {
             {step === 2 && (
               <div className="space-y-6">
                 <div>
+                  <h2 className="font-serif text-xl text-foreground">Care Recipient Details</h2>
+                  <p className="text-sm text-muted-foreground">Tell us about the person who will receive care. This information will be shared with the agency once a job is agreed.</p>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="recipientName">Care Recipient Full Name</Label>
+                  <Input id="recipientName" value={recipientName} onChange={(e) => setRecipientName(e.target.value)} placeholder="e.g. Margaret Smith" required />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="recipientDob">Date of Birth</Label>
+                  <Input id="recipientDob" type="date" value={recipientDob} onChange={(e) => setRecipientDob(e.target.value)} />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="recipientAddress">Full Care Address</Label>
+                  <Textarea id="recipientAddress" value={recipientAddress} onChange={(e) => setRecipientAddress(e.target.value)} placeholder="Full address where care will be provided" rows={3} />
+                </div>
+                <div className="space-y-2">
+                  <Label>Relationship to Account Holder</Label>
+                  <div className="flex flex-wrap gap-2">
+                    {RELATIONSHIPS.map((r) => (
+                      <button
+                        key={r}
+                        type="button"
+                        onClick={() => setRelationshipToHolder(r)}
+                        className={`rounded-full border px-3 py-1.5 text-sm transition-colors ${relationshipToHolder === r ? "border-primary bg-primary text-primary-foreground" : "border-border bg-background text-foreground hover:border-primary/50"}`}
+                      >
+                        {r}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {step === 3 && (
+              <div className="space-y-6">
+                <div>
                   <h2 className="font-serif text-xl text-foreground">Schedule</h2>
                   <p className="text-sm text-muted-foreground">How often is care needed?</p>
                 </div>
@@ -166,7 +215,7 @@ export default function CreateRequest() {
               </div>
             )}
 
-            {step === 3 && (
+            {step === 4 && (
               <div className="space-y-6">
                 <div>
                   <h2 className="font-serif text-xl text-foreground">About the Care Needed</h2>
@@ -186,7 +235,7 @@ export default function CreateRequest() {
               </div>
             )}
 
-            {step === 4 && (
+            {step === 5 && (
               <div className="space-y-6">
                 <div>
                   <h2 className="font-serif text-xl text-foreground">Review & Submit</h2>
@@ -195,6 +244,9 @@ export default function CreateRequest() {
                 <div className="space-y-3 rounded-lg border border-border bg-muted/50 p-4">
                   <div className="flex justify-between"><span className="text-sm text-muted-foreground">Postcode</span><span className="font-medium text-foreground">{postcode}</span></div>
                   <div className="flex justify-between"><span className="text-sm text-muted-foreground">Care Types</span><span className="font-medium text-foreground">{careTypes.join(", ")}</span></div>
+                  <div className="flex justify-between"><span className="text-sm text-muted-foreground">Care Recipient</span><span className="font-medium text-foreground">{recipientName}</span></div>
+                  {recipientDob && <div className="flex justify-between"><span className="text-sm text-muted-foreground">Date of Birth</span><span className="font-medium text-foreground">{recipientDob}</span></div>}
+                  <div className="flex justify-between"><span className="text-sm text-muted-foreground">Relationship</span><span className="font-medium text-foreground">{relationshipToHolder}</span></div>
                   <div className="flex justify-between"><span className="text-sm text-muted-foreground">Hours/Week</span><span className="font-medium text-foreground">{hoursPerWeek}</span></div>
                   <div className="flex justify-between"><span className="text-sm text-muted-foreground">Frequency</span><span className="font-medium text-foreground">{frequency}</span></div>
                   {startDate && <div className="flex justify-between"><span className="text-sm text-muted-foreground">Start Date</span><span className="font-medium text-foreground">{startDate}</span></div>}
@@ -212,7 +264,7 @@ export default function CreateRequest() {
                 <ArrowLeft className="mr-2 h-4 w-4" /> Back
               </Button>
             ) : <div />}
-            {step < 4 ? (
+            {step < 5 ? (
               <Button onClick={() => setStep((s) => (s + 1) as any)} disabled={!canProceed[step - 1]()}>
                 Next <ArrowRight className="ml-2 h-4 w-4" />
               </Button>

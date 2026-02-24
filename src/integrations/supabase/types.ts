@@ -182,6 +182,10 @@ export type Database = {
           longitude: number | null
           lowest_bid_rate: number | null
           postcode: string
+          recipient_address: string
+          recipient_dob: string | null
+          recipient_name: string
+          relationship_to_holder: string
           start_date: string | null
           status: Database["public"]["Enums"]["request_status"]
           updated_at: string
@@ -201,6 +205,10 @@ export type Database = {
           longitude?: number | null
           lowest_bid_rate?: number | null
           postcode: string
+          recipient_address?: string
+          recipient_dob?: string | null
+          recipient_name?: string
+          relationship_to_holder?: string
           start_date?: string | null
           status?: Database["public"]["Enums"]["request_status"]
           updated_at?: string
@@ -220,6 +228,10 @@ export type Database = {
           longitude?: number | null
           lowest_bid_rate?: number | null
           postcode?: string
+          recipient_address?: string
+          recipient_dob?: string | null
+          recipient_name?: string
+          relationship_to_holder?: string
           start_date?: string | null
           status?: Database["public"]["Enums"]["request_status"]
           updated_at?: string
