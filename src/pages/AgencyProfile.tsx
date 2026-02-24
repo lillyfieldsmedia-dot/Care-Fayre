@@ -4,6 +4,7 @@ import { Header } from "@/components/Header";
 import { supabase } from "@/integrations/supabase/client";
 import { CQCRatingBadge } from "@/components/CQCRatingBadge";
 import { ArrowLeft, Briefcase, Globe, Phone, Building2, CalendarDays, FileText, Star } from "lucide-react";
+import { CQCLiveInfo } from "@/components/CQCLiveInfo";
 import { Button } from "@/components/ui/button";
 
 type AgencyProfileData = {
@@ -14,6 +15,7 @@ type AgencyProfileData = {
   phone: string | null;
   cqc_rating: string | null;
   cqc_provider_id: string | null;
+  cqc_location_id: string | null;
   cqc_verified: boolean;
   cqc_explanation: string | null;
   years_in_operation: number | null;
@@ -39,7 +41,7 @@ export default function AgencyProfile() {
     Promise.all([
       supabase
         .from("agency_profiles")
-        .select("id, agency_name, bio, website, phone, cqc_rating, cqc_provider_id, cqc_verified, cqc_explanation, years_in_operation")
+        .select("id, agency_name, bio, website, phone, cqc_rating, cqc_provider_id, cqc_location_id, cqc_verified, cqc_explanation, years_in_operation")
         .eq("id", id)
         .single(),
       supabase
@@ -210,6 +212,9 @@ export default function AgencyProfile() {
               <p className="text-sm leading-relaxed text-muted-foreground whitespace-pre-wrap">{profile.cqc_explanation}</p>
             </div>
           )}
+
+          {/* Live CQC Data */}
+          <CQCLiveInfo locationId={profile.cqc_location_id} providerId={profile.cqc_provider_id} />
         </div>
 
         {/* Reviews Section */}
