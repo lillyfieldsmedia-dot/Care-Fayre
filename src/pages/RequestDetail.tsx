@@ -92,40 +92,31 @@ export default function RequestDetail() {
       const holderProfile = profileRes.data;
       const agencyProfile = agencyRes.data;
 
-      const STANDARD_TERMS = [
-        "Either party may cancel with 2 weeks' written notice via the platform.",
-        "Payment is collected weekly following timesheet approval.",
-        "The hourly rate is locked for the duration of this agreement and cannot be changed without a new agreement.",
-        "CareMatch UK acts as payment intermediary only and is not liable for the delivery of care services.",
-        "The agency confirms they hold current public liability insurance and all staff are DBS checked.",
-        "Any safeguarding concerns must be reported immediately to the relevant local authority.",
-      ];
+      const careTypesStr = (request.care_types || []).join(", ");
+      const startDateStr = request.start_date ? new Date(request.start_date).toLocaleDateString() : "To Be Confirmed";
 
-      const overnightSection = hasOvernight
-        ? `\nOvernight Shift Rate: £${Number(bid.overnight_rate || 0).toFixed(2)} per night\nNights per Week: ${request.nights_per_week}\nNight Type: ${request.night_type === "sleeping" ? "Sleeping night" : "Waking night"}`
-        : "";
+      const agreementText = `CAREMATCH RATE AGREEMENT
 
-      const agreementText = `RATE AGREEMENT
+This Rate Agreement is between ${holderProfile?.full_name || "—"} ("the Customer") and ${agencyProfile?.agency_name || "—"} ("the Agency"), facilitated by CareMatch.
 
-Account Holder: ${holderProfile?.full_name || "—"}
-Account Holder Address: ${holderProfile?.postcode || "—"}
+Agreed hourly rate: £${Number(bid.hourly_rate).toFixed(2)}/hr
+Care type: ${careTypesStr}
+Estimated hours per week: ${request.hours_per_week}
+Start date: ${startDateStr}
 
-Care Recipient: ${request.recipient_name || "—"}
-Date of Birth: ${request.recipient_dob ? new Date(request.recipient_dob).toLocaleDateString() : "—"}
-Care Address: ${request.recipient_address || "—"}
-Relationship to Account Holder: ${request.relationship_to_holder || "—"}
+This agreement confirms that:
 
-Agency: ${agencyProfile?.agency_name || "—"}
-CQC Location ID: ${agencyProfile?.cqc_provider_id || "—"}
+1. Both parties have agreed to the hourly rate above, which is fixed and cannot be changed for the duration of this care arrangement.
 
-Locked Hourly Rate: £${Number(bid.hourly_rate).toFixed(2)}
-Hours per Week: ${request.hours_per_week}${overnightSection}
-Frequency: ${request.frequency}
-Start Date: ${request.start_date ? new Date(request.start_date).toLocaleDateString() : "TBD"}
-Care Types: ${(request.care_types || []).join(", ")}
+2. The Agency will contact the Customer to arrange an initial care assessment.
 
-STANDARD TERMS:
-${STANDARD_TERMS.map((t: string, i: number) => `${i + 1}. ${t}`).join("\n")}`;
+3. Following the assessment, both parties must confirm on CareMatch that they wish to proceed before care begins.
+
+4. Either party may withdraw following the assessment with no penalty and no charges.
+
+5. Once care begins, the Agency will submit weekly timesheets via CareMatch. Payment will be collected by CareMatch and disbursed to the Agency minus a platform fee.
+
+6. This agreement does not constitute a contract of care. A separate care contract may be provided by the Agency at the assessment stage.`;
 
       await supabase.from("contracts").insert({
         job_id: jobData.id,
