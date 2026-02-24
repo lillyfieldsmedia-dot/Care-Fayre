@@ -183,7 +183,7 @@ export default function CustomerDashboard() {
 
   const tabs = [
     { key: "requests" as const, label: "My Requests", icon: FileText, count: requests.length },
-    { key: "jobs" as const, label: "My Jobs", icon: Briefcase, count: jobs.length },
+    { key: "jobs" as const, label: "My Care", icon: Briefcase, count: jobs.length },
     { key: "notifications" as const, label: "Notifications", icon: Bell },
   ];
 
@@ -277,7 +277,7 @@ export default function CustomerDashboard() {
         <div className="mt-8 grid gap-4 sm:grid-cols-3">
           {[
             { label: "Active Requests", value: requests.filter(r => r.status === "open").length },
-            { label: "Active Jobs", value: jobs.filter(j => j.status === "active").length },
+            { label: "Active Care", value: jobs.filter(j => j.status === "active").length },
             { label: "Total Requests", value: requests.length },
           ].map((stat) => (
             <div key={stat.label} className="rounded-xl border border-border bg-card p-6">
@@ -377,8 +377,8 @@ export default function CustomerDashboard() {
             jobs.length === 0 ? (
               <div className="rounded-xl border border-dashed border-border bg-card py-16 text-center">
                 <Briefcase className="mx-auto h-10 w-10 text-muted-foreground/50" />
-                <h3 className="mt-4 font-serif text-lg text-foreground">No active jobs</h3>
-                <p className="mt-1 text-sm text-muted-foreground">Accept a bid to create your first job.</p>
+                <h3 className="mt-4 font-serif text-lg text-foreground">No active care</h3>
+                <p className="mt-1 text-sm text-muted-foreground">Accept a bid to start your first care arrangement.</p>
               </div>
             ) : (
               <div className="space-y-3">

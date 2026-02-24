@@ -184,7 +184,7 @@ export default function JobDetailPage() {
         <nav className="mb-6 flex items-center gap-1.5 text-sm text-muted-foreground">
           <Link to={isAgency ? "/agency-dashboard" : "/dashboard"} className="hover:text-foreground">Dashboard</Link>
           <ChevronRight className="h-3.5 w-3.5" />
-          <Link to={isAgency ? "/agency-dashboard" : "/dashboard"} className="hover:text-foreground">My Jobs</Link>
+          <Link to={isAgency ? "/agency-dashboard" : "/dashboard"} className="hover:text-foreground">{isAgency ? "My Clients" : "My Care"}</Link>
           <ChevronRight className="h-3.5 w-3.5" />
           <span className="font-medium text-foreground">Job Details</span>
         </nav>
