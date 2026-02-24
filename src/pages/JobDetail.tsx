@@ -799,7 +799,7 @@ export default function JobDetailPage() {
                   if (checked) setAssessmentStartDate(undefined);
                 }}
               />
-              <label htmlFor="tbc" className="text-sm text-foreground cursor-pointer">To Be Confirmed</label>
+              <label htmlFor="tbc" className="text-sm text-foreground cursor-pointer">To Be Confirmed (e.g. waiting for hospital discharge)</label>
             </div>
             <p className="text-xs text-muted-foreground">You can update the start date later from the job detail page.</p>
           </div>
