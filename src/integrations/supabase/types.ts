@@ -344,6 +344,51 @@ export type Database = {
           },
         ]
       }
+      payments: {
+        Row: {
+          amount: number
+          created_at: string
+          id: string
+          job_id: string
+          paid_at: string | null
+          status: string
+          timesheet_id: string | null
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          id?: string
+          job_id: string
+          paid_at?: string | null
+          status?: string
+          timesheet_id?: string | null
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          id?: string
+          job_id?: string
+          paid_at?: string | null
+          status?: string
+          timesheet_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payments_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "jobs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payments_timesheet_id_fkey"
+            columns: ["timesheet_id"]
+            isOneToOne: false
+            referencedRelation: "timesheets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           created_at: string
@@ -376,6 +421,53 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      timesheets: {
+        Row: {
+          approved_at: string | null
+          created_at: string
+          hours_worked: number
+          id: string
+          job_id: string
+          notes: string | null
+          status: string
+          submitted_by: string
+          updated_at: string
+          week_starting: string
+        }
+        Insert: {
+          approved_at?: string | null
+          created_at?: string
+          hours_worked?: number
+          id?: string
+          job_id: string
+          notes?: string | null
+          status?: string
+          submitted_by: string
+          updated_at?: string
+          week_starting: string
+        }
+        Update: {
+          approved_at?: string | null
+          created_at?: string
+          hours_worked?: number
+          id?: string
+          job_id?: string
+          notes?: string | null
+          status?: string
+          submitted_by?: string
+          updated_at?: string
+          week_starting?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "timesheets_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "jobs"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_roles: {
         Row: {

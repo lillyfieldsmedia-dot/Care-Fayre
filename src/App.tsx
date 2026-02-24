@@ -12,6 +12,7 @@ import AgencyDashboard from "./pages/AgencyDashboard";
 import CreateRequest from "./pages/CreateRequest";
 import RequestDetail from "./pages/RequestDetail";
 import Profile from "./pages/Profile";
+import JobDetail from "./pages/JobDetail";
 
 const queryClient = new QueryClient();
 
@@ -30,6 +31,7 @@ const App = () => (
           <Route path="/create-request" element={<CreateRequest />} />
           <Route path="/request/:id" element={<RequestDetail />} />
           <Route path="/profile" element={<Profile />} />
+          <Route path="/job/:id" element={<JobDetail />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>

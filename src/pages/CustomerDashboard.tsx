@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Header } from "@/components/Header";
 import { supabase } from "@/integrations/supabase/client";
-import { Plus, FileText, Briefcase, Bell } from "lucide-react";
+import { Plus, FileText, Briefcase, Bell, MapPin } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
 type CareRequest = {
@@ -24,6 +24,14 @@ type Job = {
   status: string;
   start_date: string | null;
   agency_profile_id: string;
+  care_requests: {
+    postcode: string;
+    care_types: string[];
+  } | null;
+  agency_profiles: {
+    agency_name: string;
+    cqc_rating: string | null;
+  } | null;
 };
 
 const statusColors: Record<string, string> = {
@@ -49,7 +57,7 @@ export default function CustomerDashboard() {
 
     const [reqResult, jobResult] = await Promise.all([
       supabase.from("care_requests").select("*").eq("creator_id", user.id).order("created_at", { ascending: false }),
-      supabase.from("jobs").select("*").eq("customer_id", user.id).order("created_at", { ascending: false }),
+      supabase.from("jobs").select("*, care_requests(postcode, care_types), agency_profiles(agency_name, cqc_rating)").eq("customer_id", user.id).order("created_at", { ascending: false }),
     ]);
 
     setRequests((reqResult.data as CareRequest[]) || []);
@@ -165,9 +173,20 @@ export default function CustomerDashboard() {
                     to={`/job/${job.id}`}
                     className="flex items-center justify-between rounded-xl border border-border bg-card p-5 transition-shadow hover:shadow-[var(--card-shadow-hover)]"
                   >
-                    <div>
-                      <Badge className={job.status === "active" ? "bg-accent text-accent-foreground" : "bg-muted"}>{job.status}</Badge>
-                      <p className="mt-1 text-sm text-muted-foreground">{job.agreed_hours_per_week} hrs/week</p>
+                    <div className="flex flex-col gap-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <MapPin className="h-4 w-4 text-primary" />
+                        <span className="font-medium text-foreground">{job.care_requests?.postcode}</span>
+                        <Badge className={job.status === "active" ? "bg-accent text-accent-foreground" : "bg-muted"}>{job.status}</Badge>
+                      </div>
+                      <div className="flex flex-wrap gap-1">
+                        {job.care_requests?.care_types.map((ct) => (
+                          <span key={ct} className="rounded bg-secondary px-2 py-0.5 text-xs text-secondary-foreground">{ct}</span>
+                        ))}
+                      </div>
+                      <p className="text-sm text-muted-foreground">
+                        {job.agency_profiles?.agency_name} · {job.agreed_hours_per_week} hrs/week · starts {job.start_date ? new Date(job.start_date).toLocaleDateString() : "TBD"}
+                      </p>
                     </div>
                     <p className="font-serif text-xl text-foreground">£{Number(job.locked_hourly_rate).toFixed(2)}/hr</p>
                   </Link>
