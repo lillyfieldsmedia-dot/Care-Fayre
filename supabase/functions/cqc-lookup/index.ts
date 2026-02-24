@@ -17,9 +17,9 @@ Deno.serve(async (req) => {
 
     let url: string;
     if (locationId) {
-      url = `${BASE_URL}/locations/${encodeURIComponent(locationId)}?partnerCode=CAREMATCH`;
+      url = `${BASE_URL}/locations/${encodeURIComponent(locationId)}`;
     } else if (providerId) {
-      url = `${BASE_URL}/providers/${encodeURIComponent(providerId)}?partnerCode=CAREMATCH`;
+      url = `${BASE_URL}/providers/${encodeURIComponent(providerId)}`;
     } else {
       return new Response(JSON.stringify({ error: "No locationId or providerId provided" }), {
         status: 400,
@@ -27,20 +27,26 @@ Deno.serve(async (req) => {
       });
     }
 
+    console.log(`Calling CQC API: ${url}`);
+
     const res = await fetch(url, {
       headers: {
         "Ocp-Apim-Subscription-Key": CQC_API_KEY ?? "",
       },
     });
 
+    const responseBody = await res.text();
+    console.log(`CQC API status: ${res.status}`);
+    console.log(`CQC API response body: ${responseBody.substring(0, 500)}`);
+
     if (!res.ok) {
-      return new Response(JSON.stringify({ error: "CQC API returned " + res.status }), {
-        status: 502,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return new Response(
+        JSON.stringify({ error: "CQC status unavailable" }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
 
-    const data = await res.json();
+    const data = JSON.parse(responseBody);
 
     const overallRating = data.currentRatings?.overall?.rating ?? null;
     const firstReport = Array.isArray(data.reports) && data.reports.length > 0 ? data.reports[0] : null;
@@ -54,9 +60,10 @@ Deno.serve(async (req) => {
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (e) {
-    return new Response(JSON.stringify({ error: String(e) }), {
-      status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    console.error("cqc-lookup error:", e);
+    return new Response(
+      JSON.stringify({ error: "CQC status unavailable" }),
+      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
   }
 });
