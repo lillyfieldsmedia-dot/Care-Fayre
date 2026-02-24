@@ -51,6 +51,7 @@ const statusColors: Record<string, string> = {
 
 export default function CustomerDashboard() {
   const [tab, setTab] = useState<"requests" | "jobs" | "notifications">("requests");
+  const [requestFilter, setRequestFilter] = useState<"active" | "accepted" | "closed">("active");
   const [requests, setRequests] = useState<CareRequest[]>([]);
   const [jobs, setJobs] = useState<Job[]>([]);
   const [loading, setLoading] = useState(true);
@@ -301,12 +302,38 @@ export default function CustomerDashboard() {
           ))}
         </div>
 
+        {/* Request Sub-filters */}
+        {tab === "requests" && (
+          <div className="mt-4 flex gap-2">
+            {([
+              { key: "active" as const, label: "Active", desc: "Open requests awaiting bids" },
+              { key: "accepted" as const, label: "Accepted", desc: "Bid chosen, job in progress" },
+              { key: "closed" as const, label: "Closed", desc: "Expired or cancelled" },
+            ]).map((f) => (
+              <button
+                key={f.key}
+                onClick={() => setRequestFilter(f.key)}
+                className={`rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${requestFilter === f.key ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:text-foreground"}`}
+                title={f.desc}
+              >
+                {f.label}
+              </button>
+            ))}
+          </div>
+        )}
+
         {/* Content */}
-        <div className="mt-6">
+        <div className="mt-4">
           {loading ? (
             <div className="py-20 text-center text-muted-foreground">Loading...</div>
           ) : tab === "requests" ? (
-            requests.length === 0 ? (
+            (() => {
+              const filteredRequests = requests.filter((r) => {
+                if (requestFilter === "active") return r.status === "open" || r.status === "accepting_bids";
+                if (requestFilter === "accepted") return r.status === "accepted";
+                return r.status === "closed" || r.status === "cancelled";
+              });
+              return filteredRequests.length === 0 ? (
               <div className="rounded-xl border border-dashed border-border bg-card py-16 text-center">
                 <FileText className="mx-auto h-10 w-10 text-muted-foreground/50" />
                 <h3 className="mt-4 font-serif text-lg text-foreground">No care requests yet</h3>
@@ -315,7 +342,7 @@ export default function CustomerDashboard() {
               </div>
             ) : (
               <div className="space-y-3">
-                {requests.map((req) => (
+                {filteredRequests.map((req) => (
                   <Link
                     key={req.id}
                     to={`/request/${req.id}`}
@@ -344,7 +371,8 @@ export default function CustomerDashboard() {
                   </Link>
                 ))}
               </div>
-            )
+            );
+            })()
           ) : tab === "jobs" ? (
             jobs.length === 0 ? (
               <div className="rounded-xl border border-dashed border-border bg-card py-16 text-center">

@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { CQCRatingBadge } from "@/components/CQCRatingBadge";
 import {
-  MapPin, Clock, Briefcase, CalendarDays, ArrowLeft, Plus, CheckCircle, AlertCircle, User, Phone, Home, FileText,
+  MapPin, Clock, Briefcase, CalendarDays, ChevronRight, Plus, CheckCircle, AlertCircle, User, Phone, Home, FileText,
 } from "lucide-react";
 import {
   Table, TableHeader, TableBody, TableHead, TableRow, TableCell,
@@ -181,9 +181,13 @@ export default function JobDetailPage() {
     <div className="min-h-screen bg-background">
       <Header />
       <div className="container max-w-4xl py-8">
-        <Link to={isAgency ? "/agency-dashboard" : "/dashboard"} className="mb-6 inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
-          <ArrowLeft className="h-4 w-4" /> Back to Dashboard
-        </Link>
+        <nav className="mb-6 flex items-center gap-1.5 text-sm text-muted-foreground">
+          <Link to={isAgency ? "/agency-dashboard" : "/dashboard"} className="hover:text-foreground">Dashboard</Link>
+          <ChevronRight className="h-3.5 w-3.5" />
+          <Link to={isAgency ? "/agency-dashboard" : "/dashboard"} className="hover:text-foreground">My Jobs</Link>
+          <ChevronRight className="h-3.5 w-3.5" />
+          <span className="font-medium text-foreground">Job Details</span>
+        </nav>
         {/* Pending Agreement Banner for Agency */}
         {agencyNeedsToSign && (
           <div className="mb-6 rounded-xl border border-destructive/30 bg-destructive/5 p-5">
