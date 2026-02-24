@@ -105,7 +105,7 @@ export default function RequestDetail() {
         ? `\nOvernight Shift Rate: £${Number(bid.overnight_rate || 0).toFixed(2)} per night\nNights per Week: ${request.nights_per_week}\nNight Type: ${request.night_type === "sleeping" ? "Sleeping night" : "Waking night"}`
         : "";
 
-      const agreementText = `INTENT TO PROCEED
+      const agreementText = `RATE AGREEMENT
 
 Account Holder: ${holderProfile?.full_name || "—"}
 Account Holder Address: ${holderProfile?.postcode || "—"}
@@ -137,11 +137,11 @@ ${STANDARD_TERMS.map((t: string, i: number) => `${i + 1}. ${t}`).join("\n")}`;
       await supabase.from("notifications").insert({
         recipient_id: bid.bidder_id,
         type: "agreement_pending",
-        message: "A customer has accepted your bid — please review and sign the Intent to Proceed",
+        message: "A customer has accepted your bid — please review and sign the Rate Agreement",
         related_job_id: jobData.id,
       });
 
-      toast.success("Bid accepted! Please review and sign the Intent to Proceed.");
+      toast.success("Bid accepted! Please review and sign the Rate Agreement.");
       navigate(`/agreement/${jobData.id}`);
     } catch (err: any) {
       toast.error(err.message || "Failed to accept bid");
