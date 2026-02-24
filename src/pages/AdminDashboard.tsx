@@ -81,13 +81,13 @@ export default function AdminDashboard() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { navigate("/login"); return; }
 
-    const { data: roleData } = await supabase
+    const { data: roles } = await supabase
       .from("user_roles")
       .select("role")
-      .eq("user_id", user.id)
-      .single();
+      .eq("user_id", user.id);
 
-    if (roleData?.role !== "admin") {
+    const isAdmin = roles?.some((r) => r.role === "admin");
+    if (!isAdmin) {
       toast.error("Access denied — admin only");
       navigate("/");
       return;

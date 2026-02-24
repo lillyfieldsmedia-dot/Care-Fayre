@@ -25,11 +25,11 @@ export default function Login() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Login failed");
 
-      const { data: roleData } = await supabase.from("user_roles").select("role").eq("user_id", user.id).maybeSingle();
-      const role = roleData?.role;
+      const { data: roles } = await supabase.from("user_roles").select("role").eq("user_id", user.id);
+      const roleSet = new Set(roles?.map((r) => r.role));
 
-      if (role === "agency") navigate("/agency-dashboard");
-      else if (role === "admin") navigate("/admin");
+      if (roleSet.has("admin")) navigate("/admin");
+      else if (roleSet.has("agency")) navigate("/agency-dashboard");
       else navigate("/dashboard");
     } catch (err: any) {
       toast.error(err.message || "Invalid credentials");
