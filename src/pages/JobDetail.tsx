@@ -91,6 +91,8 @@ export default function JobDetailPage() {
   const [tsNotes, setTsNotes] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [cancelling, setCancelling] = useState(false);
+  const [markingAssessment, setMarkingAssessment] = useState(false);
+  const [confirmingCare, setConfirmingCare] = useState(false);
   const [customerProfile, setCustomerProfile] = useState<{ full_name: string; phone: string | null } | null>(null);
   const [contract, setContract] = useState<{ customer_agreed_at: string | null; agency_agreed_at: string | null } | null>(null);
 
@@ -155,6 +157,69 @@ export default function JobDetailPage() {
     await supabase.from("jobs").update({
       total_paid_to_date: Number(job.total_paid_to_date) + amount,
     }).eq("id", job.id);
+    loadData();
+  }
+
+  async function handleMarkAssessmentComplete() {
+    if (!job || !userId) return;
+    setMarkingAssessment(true);
+    const { error } = await supabase.from("jobs").update({ status: "assessment_complete" } as any).eq("id", job.id);
+    if (error) {
+      toast.error("Failed to update: " + error.message);
+      setMarkingAssessment(false);
+      return;
+    }
+    const agencyName = job.agency_profiles?.agency_name || "the agency";
+    await supabase.from("notifications").insert({
+      recipient_id: job.customer_id,
+      type: "assessment_complete",
+      message: `Your assessment with ${agencyName} has taken place. Please confirm on CareMatch whether you wish to proceed with care.`,
+      related_job_id: job.id,
+    });
+    toast.success("Assessment marked as complete. The customer has been notified.");
+    setMarkingAssessment(false);
+    loadData();
+  }
+
+  async function handleConfirmCare() {
+    if (!job || !userId) return;
+    setConfirmingCare(true);
+    const { error } = await supabase.from("jobs").update({ status: "active" } as any).eq("id", job.id);
+    if (error) {
+      toast.error("Failed to activate: " + error.message);
+      setConfirmingCare(false);
+      return;
+    }
+    const customerName = customerProfile?.full_name || "The customer";
+    await supabase.from("notifications").insert({
+      recipient_id: job.agency_id,
+      type: "care_confirmed",
+      message: `${customerName} has confirmed they wish to proceed. Care is now active — you can begin submitting timesheets.`,
+      related_job_id: job.id,
+    });
+    toast.success("Care is now active!");
+    setConfirmingCare(false);
+    loadData();
+  }
+
+  async function handleDeclineCare() {
+    if (!job || !userId) return;
+    setCancelling(true);
+    const { error } = await supabase.from("jobs").update({ status: "cancelled_pre_care" } as any).eq("id", job.id);
+    if (error) {
+      toast.error("Failed to cancel: " + error.message);
+      setCancelling(false);
+      return;
+    }
+    const customerName = customerProfile?.full_name || "The customer";
+    await supabase.from("notifications").insert({
+      recipient_id: job.agency_id,
+      type: "cancelled_pre_care",
+      message: `${customerName} has decided not to proceed following the assessment. No charges apply.`,
+      related_job_id: job.id,
+    });
+    toast.success("Arrangement cancelled. No charges apply.");
+    setCancelling(false);
     loadData();
   }
 
@@ -262,6 +327,46 @@ export default function JobDetailPage() {
           </div>
         )}
 
+        {/* Agency: Mark Assessment Complete button */}
+        {isAgency && job.status === "assessment_pending" && (
+          <div className="mb-6 rounded-xl border border-primary/30 bg-primary/5 p-5">
+            <div className="flex items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <CheckCircle className="h-5 w-5 shrink-0 text-primary" />
+                <div>
+                  <p className="font-medium text-foreground">Has the care assessment taken place?</p>
+                  <p className="mt-0.5 text-sm text-muted-foreground">Once marked complete, the customer will be asked to confirm whether they wish to proceed.</p>
+                </div>
+              </div>
+              <Button onClick={handleMarkAssessmentComplete} disabled={markingAssessment}>
+                {markingAssessment ? "Updating..." : "Mark Assessment Complete"}
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {/* Customer: Post-assessment confirmation */}
+        {isCustomer && job.status === "assessment_complete" && (
+          <div className="mb-6 rounded-xl border border-primary/30 bg-primary/5 p-5">
+            <div className="flex flex-col items-center gap-4 text-center">
+              <CheckCircle className="h-8 w-8 text-primary" />
+              <div>
+                <p className="text-lg font-semibold text-foreground">Your assessment has taken place. Do you wish to proceed with care?</p>
+                <p className="mt-1 text-sm text-muted-foreground">Choosing to proceed will activate billing and timesheets.</p>
+              </div>
+              <div className="flex gap-3">
+                <Button onClick={handleConfirmCare} disabled={confirmingCare || cancelling}>
+                  {confirmingCare ? "Activating..." : "Yes, proceed with care"}
+                </Button>
+                <Button variant="destructive" onClick={handleDeclineCare} disabled={cancelling || confirmingCare}>
+                  {cancelling ? "Cancelling..." : "No, cancel arrangement"}
+                </Button>
+              </div>
+              <p className="text-xs text-muted-foreground">Cancelling at this stage incurs no charges.</p>
+            </div>
+          </div>
+        )}
+
         {/* Pre-care cancellation banner */}
         {job.status === "cancelled_pre_care" && (
           <div className="mb-6 rounded-xl border border-muted bg-muted/30 p-5 text-center">
@@ -347,8 +452,25 @@ export default function JobDetailPage() {
             </div>
           )}
 
-          {/* Cancel Pre-Care Button */}
-          {canCancel && (
+          {/* Cancel Pre-Care Button — agency at assessment_pending, or agency at assessment_complete */}
+          {isAgency && isPreCare && (
+            <div className="mt-4">
+              <Button
+                variant="destructive"
+                className="w-full"
+                onClick={handleCancelPreCare}
+                disabled={cancelling}
+              >
+                <XCircle className="mr-2 h-4 w-4" />
+                {cancelling ? "Cancelling..." : "Cancel Arrangement (No Charge)"}
+              </Button>
+              <p className="mt-1 text-center text-xs text-muted-foreground">
+                Either party may cancel before care begins with no penalty.
+              </p>
+            </div>
+          )}
+          {/* Cancel Pre-Care Button — customer at assessment_pending only (assessment_complete has inline buttons) */}
+          {isCustomer && job.status === "assessment_pending" && (
             <div className="mt-4">
               <Button
                 variant="destructive"
