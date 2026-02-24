@@ -206,7 +206,9 @@ export default function AgencyDashboard() {
                       <div className="flex flex-col gap-1">
                         <div className="flex items-center gap-2">
                           <span className="font-medium text-foreground">{job.care_requests?.recipient_name || job.care_requests?.postcode}</span>
-                          <Badge className={job.status === "active" ? "bg-accent text-accent-foreground" : "bg-muted"}>{job.status}</Badge>
+                          <Badge className={job.status === "active" ? "bg-accent text-accent-foreground" : job.status === "assessment_pending" ? "bg-primary/20 text-primary" : job.status === "cancelled_pre_care" ? "bg-destructive/20 text-destructive" : "bg-muted"}>
+                            {job.status === "assessment_pending" ? "Assessment Pending" : job.status === "assessment_complete" ? "Assessment Complete" : job.status === "cancelled_pre_care" ? "Cancelled (Pre-Care)" : job.status}
+                          </Badge>
                         </div>
                         <div className="flex flex-wrap gap-1">
                           {job.care_requests?.care_types.map((ct) => (

@@ -48,44 +48,6 @@ const STANDARD_TERMS = [
   "Any safeguarding concerns must be reported immediately to the relevant local authority.",
 ];
 
-function buildAgreementText(params: {
-  holderName: string;
-  holderPostcode: string;
-  recipientName: string;
-  recipientDob: string;
-  recipientAddress: string;
-  relationship: string;
-  agencyName: string;
-  cqcId: string;
-  hourlyRate: string;
-  hoursPerWeek: number;
-  frequency: string;
-  startDate: string;
-  careTypes: string[];
-}) {
-  return `CARE AGREEMENT
-
-Account Holder: ${params.holderName}
-Account Holder Address: ${params.holderPostcode}
-
-Care Recipient: ${params.recipientName}
-Date of Birth: ${params.recipientDob}
-Care Address: ${params.recipientAddress}
-Relationship to Account Holder: ${params.relationship}
-
-Agency: ${params.agencyName}
-CQC Location ID: ${params.cqcId}
-
-Locked Hourly Rate: £${params.hourlyRate}
-Hours per Week: ${params.hoursPerWeek}
-Frequency: ${params.frequency}
-Start Date: ${params.startDate}
-Care Types: ${params.careTypes.join(", ")}
-
-STANDARD TERMS:
-${STANDARD_TERMS.map((t, i) => `${i + 1}. ${t}`).join("\n")}`;
-}
-
 export default function CareAgreement() {
   const { jobId } = useParams<{ jobId: string }>();
   const navigate = useNavigate();
@@ -124,7 +86,7 @@ export default function CareAgreement() {
   }
 
   async function handleAgree() {
-    if (!contract || !userId) return;
+    if (!contract || !userId || !job) return;
     setSubmitting(true);
 
     const isCustomer = userId === contract.customer_id;
@@ -148,12 +110,32 @@ export default function CareAgreement() {
     // Check if both parties have now agreed
     const otherAgreed = isCustomer ? contract.agency_agreed_at : contract.customer_agreed_at;
     if (otherAgreed) {
-      // Both agreed — activate the job
-      await supabase.from("jobs").update({ status: "active" }).eq("id", contract.job_id);
-      toast.success("Both parties have agreed! The job is now active.");
+      // Both agreed — set to assessment_pending (not active)
+      await supabase.from("jobs").update({ status: "assessment_pending" } as any).eq("id", contract.job_id);
+
+      // Send notifications to both parties
+      const agencyName = job.agency_profiles?.agency_name || "the agency";
+      const customerName = holderProfile?.full_name || "the customer";
+
+      await Promise.all([
+        supabase.from("notifications").insert({
+          recipient_id: contract.customer_id,
+          type: "assessment_pending",
+          message: `Your Intent to Proceed with ${agencyName} has been signed. They will be in touch shortly to arrange a care assessment.`,
+          related_job_id: contract.job_id,
+        }),
+        supabase.from("notifications").insert({
+          recipient_id: contract.agency_id,
+          type: "assessment_pending",
+          message: `Your Intent to Proceed with ${customerName} is signed. Please contact them as soon as possible to arrange a care assessment.`,
+          related_job_id: contract.job_id,
+        }),
+      ]);
+
+      toast.success("Both parties have signed! The agency will arrange a care assessment.");
       navigate(`/job/${contract.job_id}`);
     } else {
-      toast.success("Agreement recorded. Waiting for the other party to agree.");
+      toast.success("Agreement recorded. Waiting for the other party to sign.");
       loadData();
     }
 
@@ -199,11 +181,11 @@ export default function CareAgreement() {
 
         <div className="rounded-xl border border-border bg-card p-6">
           <div className="flex items-center justify-between">
-            <h1 className="font-serif text-2xl text-foreground">Care Agreement</h1>
+            <h1 className="font-serif text-2xl text-foreground">Intent to Proceed</h1>
             {bothAgreed ? (
-              <Badge className="bg-accent text-accent-foreground"><CheckCircle className="mr-1 h-3 w-3" /> Fully Agreed</Badge>
+              <Badge className="bg-accent text-accent-foreground"><CheckCircle className="mr-1 h-3 w-3" /> Fully Signed</Badge>
             ) : (
-              <Badge className="bg-muted text-muted-foreground"><Clock className="mr-1 h-3 w-3" /> Pending Agreement</Badge>
+              <Badge className="bg-muted text-muted-foreground"><Clock className="mr-1 h-3 w-3" /> Pending Signature</Badge>
             )}
           </div>
 
@@ -308,7 +290,7 @@ export default function CareAgreement() {
 
             {/* Agreement Status */}
             <section className="rounded-lg border border-border bg-muted/50 p-4">
-              <h3 className="text-sm font-semibold text-foreground">Agreement Status</h3>
+              <h3 className="text-sm font-semibold text-foreground">Signature Status</h3>
               <div className="mt-2 space-y-1 text-sm">
                 <div className="flex items-center gap-2">
                   {contract.customer_agreed_at ? (
@@ -317,7 +299,7 @@ export default function CareAgreement() {
                     <Clock className="h-4 w-4 text-muted-foreground" />
                   )}
                   <span className="text-foreground">
-                    Customer: {contract.customer_agreed_at ? `Agreed on ${new Date(contract.customer_agreed_at).toLocaleString()}` : "Pending"}
+                    Customer: {contract.customer_agreed_at ? `Signed on ${new Date(contract.customer_agreed_at).toLocaleString()}` : "Pending"}
                   </span>
                 </div>
                 <div className="flex items-center gap-2">
@@ -327,13 +309,13 @@ export default function CareAgreement() {
                     <Clock className="h-4 w-4 text-muted-foreground" />
                   )}
                   <span className="text-foreground">
-                    Agency: {contract.agency_agreed_at ? `Agreed on ${new Date(contract.agency_agreed_at).toLocaleString()}` : "Pending"}
+                    Agency: {contract.agency_agreed_at ? `Signed on ${new Date(contract.agency_agreed_at).toLocaleString()}` : "Pending"}
                   </span>
                 </div>
               </div>
             </section>
 
-            {/* Agree Button */}
+            {/* Sign Button */}
             {!alreadyAgreed && (isCustomer || isAgency) && (
               <div className="border-t border-border pt-6">
                 <div className="flex items-start gap-3">
@@ -344,7 +326,7 @@ export default function CareAgreement() {
                     className="mt-0.5"
                   />
                   <label htmlFor="agree" className="text-sm text-foreground cursor-pointer">
-                    I agree to this Care Agreement and all the standard terms listed above.
+                    I agree to this Intent to Proceed and all the standard terms listed above.
                   </label>
                 </div>
                 <Button
@@ -352,7 +334,7 @@ export default function CareAgreement() {
                   disabled={!agreed || submitting}
                   onClick={handleAgree}
                 >
-                  {submitting ? "Submitting..." : "I agree to this Care Agreement"}
+                  {submitting ? "Submitting..." : "Sign Intent to Proceed"}
                 </Button>
               </div>
             )}
@@ -360,8 +342,8 @@ export default function CareAgreement() {
             {alreadyAgreed && !bothAgreed && (
               <div className="rounded-lg border border-accent/30 bg-accent/5 p-4 text-center">
                 <CheckCircle className="mx-auto h-6 w-6 text-accent" />
-                <p className="mt-2 font-medium text-foreground">You have agreed to this Care Agreement</p>
-                <p className="text-sm text-muted-foreground">Waiting for the other party to agree before the job becomes active.</p>
+                <p className="mt-2 font-medium text-foreground">You have signed this Intent to Proceed</p>
+                <p className="text-sm text-muted-foreground">Waiting for the other party to sign before the assessment stage begins.</p>
                 <Button asChild className="mt-3" variant="outline">
                   <Link to={`/job/${contract.job_id}`}>View Job Details</Link>
                 </Button>
@@ -371,8 +353,8 @@ export default function CareAgreement() {
             {bothAgreed && (
               <div className="rounded-lg border border-accent/30 bg-accent/5 p-4 text-center">
                 <CheckCircle className="mx-auto h-6 w-6 text-accent" />
-                <p className="mt-2 font-medium text-foreground">Both parties have agreed</p>
-                <p className="text-sm text-muted-foreground">This job is now active.</p>
+                <p className="mt-2 font-medium text-foreground">Both parties have signed</p>
+                <p className="text-sm text-muted-foreground">The assessment stage is now underway.</p>
                 <Button asChild className="mt-3" variant="outline">
                   <Link to={`/job/${contract.job_id}`}>View Job</Link>
                 </Button>

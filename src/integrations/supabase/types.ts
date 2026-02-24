@@ -631,6 +631,9 @@ export type Database = {
         | "disputed"
         | "cancelled"
         | "pending"
+        | "assessment_pending"
+        | "assessment_complete"
+        | "cancelled_pre_care"
       request_status:
         | "open"
         | "accepting_bids"
@@ -774,6 +777,9 @@ export const Constants = {
         "disputed",
         "cancelled",
         "pending",
+        "assessment_pending",
+        "assessment_complete",
+        "cancelled_pre_care",
       ],
       request_status: [
         "open",
