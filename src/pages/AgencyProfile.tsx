@@ -134,7 +134,7 @@ export default function AgencyProfile() {
               <Briefcase className="h-4 w-4 text-primary" />
               <div className="text-center">
                 <p className="font-serif text-2xl text-foreground">{profile.active_jobs_count}</p>
-                <p className="text-xs text-muted-foreground">Active Jobs</p>
+                <p className="text-xs text-muted-foreground">Active Clients</p>
               </div>
             </div>
           </div>

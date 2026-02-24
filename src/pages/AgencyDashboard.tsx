@@ -62,7 +62,7 @@ export default function AgencyDashboard() {
   const tabs = [
     { key: "available" as const, label: "Available Requests", icon: MapPin },
     { key: "bids" as const, label: "My Bids", icon: TrendingUp },
-    { key: "jobs" as const, label: "My Jobs", icon: Briefcase },
+    { key: "jobs" as const, label: "My Clients", icon: Briefcase },
   ];
 
   return (
@@ -114,7 +114,7 @@ export default function AgencyDashboard() {
           {[
             { label: "Open Requests", value: requests.length, icon: MapPin },
             { label: "Active Bids", value: "—", icon: TrendingUp },
-            { label: "Active Jobs", value: jobs.filter(j => j.status === "active").length, icon: Briefcase },
+            { label: "Active Clients", value: jobs.filter(j => j.status === "active").length, icon: Briefcase },
             { label: "This Month", value: "—", icon: Clock },
           ].map((stat) => (
             <div key={stat.label} className="rounded-xl border border-border bg-card p-5">
@@ -192,8 +192,8 @@ export default function AgencyDashboard() {
               jobs.length === 0 ? (
                 <div className="rounded-xl border border-dashed border-border bg-card py-16 text-center">
                   <Briefcase className="mx-auto h-10 w-10 text-muted-foreground/50" />
-                  <h3 className="mt-4 font-serif text-lg text-foreground">No active jobs</h3>
-                  <p className="mt-1 text-sm text-muted-foreground">Accept bids to start jobs.</p>
+                   <h3 className="mt-4 font-serif text-lg text-foreground">No active clients</h3>
+                   <p className="mt-1 text-sm text-muted-foreground">Win bids to start serving clients.</p>
                 </div>
               ) : (
                 <div className="space-y-3">
