@@ -362,6 +362,9 @@ export default function CareAgreement() {
                 <CheckCircle className="mx-auto h-6 w-6 text-accent" />
                 <p className="mt-2 font-medium text-foreground">You have agreed to this Care Agreement</p>
                 <p className="text-sm text-muted-foreground">Waiting for the other party to agree before the job becomes active.</p>
+                <Button asChild className="mt-3" variant="outline">
+                  <Link to={`/job/${contract.job_id}`}>View Job Details</Link>
+                </Button>
               </div>
             )}
 
