@@ -47,6 +47,15 @@ const statusColors: Record<string, string> = {
   accepted: "bg-cqc-good text-primary-foreground",
   closed: "bg-muted text-muted-foreground",
   cancelled: "bg-destructive/20 text-destructive",
+  assessment_pending: "bg-primary/20 text-primary",
+  assessment_complete: "bg-primary/30 text-primary",
+  cancelled_pre_care: "bg-destructive/20 text-destructive",
+};
+
+const jobStatusLabels: Record<string, string> = {
+  assessment_pending: "Assessment Pending",
+  assessment_complete: "Assessment Complete",
+  cancelled_pre_care: "Cancelled (Pre-Care)",
 };
 
 export default function CustomerDashboard() {
@@ -140,7 +149,7 @@ export default function CustomerDashboard() {
 
     const reviewable = allJobs
       .filter(j =>
-        (j.status === "active" || j.status === "completed") &&
+        j.status === "active" &&
         j.start_date &&
         new Date(j.start_date).toISOString() <= fourteenDaysAgo &&
         !reviewedJobIds.has(j.id)
@@ -395,7 +404,7 @@ export default function CustomerDashboard() {
                       <div className="flex flex-wrap items-center gap-2">
                         <MapPin className="h-4 w-4 text-primary" />
                         <span className="font-medium text-foreground">{job.care_requests?.postcode}</span>
-                        <Badge className={job.status === "active" ? "bg-accent text-accent-foreground" : "bg-muted"}>{job.status}</Badge>
+                        <Badge className={statusColors[job.status] || (job.status === "active" ? "bg-accent text-accent-foreground" : "bg-muted")}>{jobStatusLabels[job.status] || job.status}</Badge>
                       </div>
                       <div className="flex flex-wrap gap-1">
                         {job.care_requests?.care_types.map((ct) => (
