@@ -28,6 +28,7 @@ type JobDetail = {
     frequency: string;
   } | null;
   agency_profiles: {
+    id: string;
     agency_name: string;
     cqc_rating: string | null;
     cqc_verified: boolean;
@@ -86,7 +87,7 @@ export default function JobDetailPage() {
     setUserId(user.id);
 
     const [jobRes, tsRes, payRes] = await Promise.all([
-      supabase.from("jobs").select("*, care_requests(postcode, care_types, description, frequency), agency_profiles(agency_name, cqc_rating, cqc_verified)").eq("id", id).single(),
+      supabase.from("jobs").select("*, care_requests(postcode, care_types, description, frequency), agency_profiles(id, agency_name, cqc_rating, cqc_verified)").eq("id", id).single(),
       supabase.from("timesheets").select("*").eq("job_id", id).order("week_starting", { ascending: false }),
       supabase.from("payments").select("*").eq("job_id", id).order("created_at", { ascending: false }),
     ]);
@@ -209,7 +210,7 @@ export default function JobDetailPage() {
           <div className="mt-4 flex items-center gap-3 rounded-lg border border-border p-3">
             <Briefcase className="h-5 w-5 text-primary" />
             <div>
-              <p className="font-medium text-foreground">{job.agency_profiles?.agency_name}</p>
+              <Link to={`/agency/${job.agency_profiles?.id}`} className="font-medium text-primary hover:underline">{job.agency_profiles?.agency_name}</Link>
               <div className="flex items-center gap-2">
                 {job.agency_profiles?.cqc_rating && (
                   <CQCRatingBadge rating={job.agency_profiles.cqc_rating as any} />
