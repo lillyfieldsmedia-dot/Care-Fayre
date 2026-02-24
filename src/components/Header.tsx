@@ -7,8 +7,30 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+
+type NotificationPreview = {
+  id: string;
+  message: string;
+  created_at: string;
+  related_job_id: string | null;
+  related_request_id: string | null;
+};
+
+function timeAgo(dateStr: string): string {
+  const now = Date.now();
+  const then = new Date(dateStr).getTime();
+  const diffSec = Math.floor((now - then) / 1000);
+  if (diffSec < 60) return "just now";
+  const diffMin = Math.floor(diffSec / 60);
+  if (diffMin < 60) return `${diffMin}m ago`;
+  const diffHr = Math.floor(diffMin / 60);
+  if (diffHr < 24) return `${diffHr}h ago`;
+  const diffDay = Math.floor(diffHr / 24);
+  return `${diffDay}d ago`;
+}
 
 export function Header() {
   const navigate = useNavigate();
@@ -16,6 +38,7 @@ export function Header() {
   const [role, setRole] = useState<string | null>(null);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [latestNotifications, setLatestNotifications] = useState<NotificationPreview[]>([]);
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
@@ -26,6 +49,7 @@ export function Header() {
       } else {
         setRole(null);
         setUnreadCount(0);
+        setLatestNotifications([]);
       }
     });
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -46,6 +70,28 @@ export function Header() {
   async function fetchUnread(userId: string) {
     const { count } = await supabase.from("notifications").select("*", { count: "exact", head: true }).eq("recipient_id", userId).eq("is_read", false);
     setUnreadCount(count ?? 0);
+
+    const { data } = await supabase
+      .from("notifications")
+      .select("id, message, created_at, related_job_id, related_request_id")
+      .eq("recipient_id", userId)
+      .eq("is_read", false)
+      .order("created_at", { ascending: false })
+      .limit(3);
+    setLatestNotifications((data as NotificationPreview[]) || []);
+  }
+
+  async function handleNotificationClick(notif: NotificationPreview) {
+    await supabase.from("notifications").update({ is_read: true }).eq("id", notif.id);
+    setUnreadCount((c) => Math.max(0, c - 1));
+    setLatestNotifications((prev) => prev.filter((n) => n.id !== notif.id));
+    if (notif.related_job_id) {
+      navigate(`/job/${notif.related_job_id}`);
+    } else if (notif.related_request_id) {
+      navigate(`/request/${notif.related_request_id}`);
+    } else {
+      navigate(dashboardLink + "?tab=notifications");
+    }
   }
 
   async function handleLogout() {
@@ -82,15 +128,38 @@ export function Header() {
                     )}
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-64">
-                  <DropdownMenuItem asChild><Link to={dashboardLink + "?tab=notifications"}>View all notifications</Link></DropdownMenuItem>
+                <DropdownMenuContent align="end" className="w-80 bg-popover z-[100]">
+                  {latestNotifications.length > 0 ? (
+                    <>
+                      {latestNotifications.map((notif) => (
+                        <DropdownMenuItem
+                          key={notif.id}
+                          className="flex flex-col items-start gap-1 cursor-pointer py-3"
+                          onClick={() => handleNotificationClick(notif)}
+                        >
+                          <p className="text-sm text-foreground leading-snug line-clamp-2">{notif.message}</p>
+                          <span className="text-xs text-muted-foreground">{timeAgo(notif.created_at)}</span>
+                        </DropdownMenuItem>
+                      ))}
+                      <DropdownMenuSeparator />
+                    </>
+                  ) : (
+                    <div className="px-3 py-4 text-center text-sm text-muted-foreground">
+                      No unread notifications
+                    </div>
+                  )}
+                  <DropdownMenuItem asChild>
+                    <Link to={dashboardLink + "?tab=notifications"} className="justify-center text-primary font-medium">
+                      View all notifications
+                    </Link>
+                  </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" size="icon"><User className="h-4 w-4" /></Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
+                <DropdownMenuContent align="end" className="bg-popover z-[100]">
                   <DropdownMenuItem asChild><Link to="/profile">Profile</Link></DropdownMenuItem>
                   <DropdownMenuItem onClick={handleLogout}><LogOut className="mr-2 h-4 w-4" /> Log out</DropdownMenuItem>
                 </DropdownMenuContent>
