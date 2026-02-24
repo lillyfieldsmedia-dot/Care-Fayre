@@ -19,6 +19,7 @@ export type Database = {
           active_jobs_count: number
           agency_name: string
           bio: string | null
+          cqc_explanation: string | null
           cqc_last_checked: string | null
           cqc_location_id: string | null
           cqc_provider_id: string | null
@@ -29,16 +30,19 @@ export type Database = {
           insurance_confirmed: boolean
           latitude: number | null
           longitude: number | null
+          phone: string | null
           service_area_postcodes: string[] | null
           service_radius_miles: number
           updated_at: string
           user_id: string
           website: string | null
+          years_in_operation: number | null
         }
         Insert: {
           active_jobs_count?: number
           agency_name: string
           bio?: string | null
+          cqc_explanation?: string | null
           cqc_last_checked?: string | null
           cqc_location_id?: string | null
           cqc_provider_id?: string | null
@@ -49,16 +53,19 @@ export type Database = {
           insurance_confirmed?: boolean
           latitude?: number | null
           longitude?: number | null
+          phone?: string | null
           service_area_postcodes?: string[] | null
           service_radius_miles?: number
           updated_at?: string
           user_id: string
           website?: string | null
+          years_in_operation?: number | null
         }
         Update: {
           active_jobs_count?: number
           agency_name?: string
           bio?: string | null
+          cqc_explanation?: string | null
           cqc_last_checked?: string | null
           cqc_location_id?: string | null
           cqc_provider_id?: string | null
@@ -69,11 +76,13 @@ export type Database = {
           insurance_confirmed?: boolean
           latitude?: number | null
           longitude?: number | null
+          phone?: string | null
           service_area_postcodes?: string[] | null
           service_radius_miles?: number
           updated_at?: string
           user_id?: string
           website?: string | null
+          years_in_operation?: number | null
         }
         Relationships: []
       }

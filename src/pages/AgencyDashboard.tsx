@@ -4,6 +4,7 @@ import { Header } from "@/components/Header";
 import { supabase } from "@/integrations/supabase/client";
 import { MapPin, Clock, Briefcase, TrendingUp } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { EditAgencyProfileDialog } from "@/components/EditAgencyProfileDialog";
 
 type CareRequest = {
   id: string;
@@ -33,6 +34,7 @@ export default function AgencyDashboard() {
   const [tab, setTab] = useState<"available" | "bids" | "jobs">("available");
   const [requests, setRequests] = useState<CareRequest[]>([]);
   const [jobs, setJobs] = useState<AgencyJob[]>([]);
+  const [agencyProfile, setAgencyProfile] = useState<{ id: string; phone: string; website: string; bio: string; cqc_explanation: string } | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -43,13 +45,15 @@ export default function AgencyDashboard() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 
-    const [reqResult, jobResult] = await Promise.all([
+    const [reqResult, jobResult, apResult] = await Promise.all([
       supabase.from("care_requests").select("*").eq("status", "open").order("created_at", { ascending: false }),
       supabase.from("jobs").select("*, care_requests(postcode, care_types)").eq("agency_id", user.id).order("created_at", { ascending: false }),
+      supabase.from("agency_profiles").select("id, phone, website, bio, cqc_explanation").eq("user_id", user.id).single(),
     ]);
 
     setRequests((reqResult.data as CareRequest[]) || []);
     setJobs((jobResult.data as AgencyJob[]) || []);
+    if (apResult.data) setAgencyProfile(apResult.data as any);
     setLoading(false);
   }
 
@@ -63,9 +67,23 @@ export default function AgencyDashboard() {
     <div className="min-h-screen bg-background">
       <Header />
       <div className="container py-8">
-        <div>
-          <h1 className="font-serif text-3xl text-foreground">Agency Dashboard</h1>
-          <p className="text-muted-foreground">Browse requests and manage your bids</p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="font-serif text-3xl text-foreground">Agency Dashboard</h1>
+            <p className="text-muted-foreground">Browse requests and manage your bids</p>
+          </div>
+          {agencyProfile && (
+            <EditAgencyProfileDialog
+              profileId={agencyProfile.id}
+              initial={{
+                phone: agencyProfile.phone || "",
+                website: agencyProfile.website || "",
+                bio: agencyProfile.bio || "",
+                cqc_explanation: agencyProfile.cqc_explanation || "",
+              }}
+              onSaved={loadData}
+            />
+          )}
         </div>
 
         {/* Stats */}
