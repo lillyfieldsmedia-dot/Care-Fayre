@@ -5,13 +5,21 @@ import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { CQCRatingBadge } from "@/components/CQCRatingBadge";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
-  MapPin, Clock, Briefcase, CalendarDays, ChevronRight, Plus, CheckCircle, AlertCircle, User, Phone, Home, FileText, XCircle,
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription,
+} from "@/components/ui/dialog";
+import {
+  MapPin, Clock, Briefcase, CalendarDays, ChevronRight, Plus, CheckCircle, AlertCircle, User, Phone, Home, FileText, XCircle, CalendarIcon, Pencil,
 } from "lucide-react";
 import {
   Table, TableHeader, TableBody, TableHead, TableRow, TableCell,
 } from "@/components/ui/table";
 import { toast } from "sonner";
+import { format } from "date-fns";
+import { cn } from "@/lib/utils";
 
 type JobDetail = {
   id: string;
@@ -95,6 +103,13 @@ export default function JobDetailPage() {
   const [confirmingCare, setConfirmingCare] = useState(false);
   const [customerProfile, setCustomerProfile] = useState<{ full_name: string; phone: string | null } | null>(null);
   const [contract, setContract] = useState<{ customer_agreed_at: string | null; agency_agreed_at: string | null } | null>(null);
+  const [showAssessmentModal, setShowAssessmentModal] = useState(false);
+  const [assessmentStartDate, setAssessmentStartDate] = useState<Date | undefined>(undefined);
+  const [assessmentTbc, setAssessmentTbc] = useState(false);
+  const [showEditStartDate, setShowEditStartDate] = useState(false);
+  const [editStartDate, setEditStartDate] = useState<Date | undefined>(undefined);
+  const [editStartTbc, setEditStartTbc] = useState(false);
+  const [savingStartDate, setSavingStartDate] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -163,21 +178,74 @@ export default function JobDetailPage() {
   async function handleMarkAssessmentComplete() {
     if (!job || !userId) return;
     setMarkingAssessment(true);
-    const { error } = await supabase.from("jobs").update({ status: "assessment_complete" } as any).eq("id", job.id);
+    const startDateValue = assessmentTbc || !assessmentStartDate ? null : format(assessmentStartDate, "yyyy-MM-dd");
+    const { error } = await supabase.from("jobs").update({ status: "assessment_complete", start_date: startDateValue } as any).eq("id", job.id);
     if (error) {
       toast.error("Failed to update: " + error.message);
       setMarkingAssessment(false);
       return;
     }
     const agencyName = job.agency_profiles?.agency_name || "the agency";
+    // Assessment complete notification
     await supabase.from("notifications").insert({
       recipient_id: job.customer_id,
       type: "assessment_complete",
       message: `Your assessment with ${agencyName} has taken place. Please confirm on CareMatch whether you wish to proceed with care.`,
       related_job_id: job.id,
     });
+    // Start date notification
+    if (startDateValue) {
+      await supabase.from("notifications").insert({
+        recipient_id: job.customer_id,
+        type: "start_date_set",
+        message: `Your care start date with ${agencyName} has been confirmed as ${format(assessmentStartDate!, "d MMMM yyyy")}.`,
+        related_job_id: job.id,
+      });
+    } else {
+      await supabase.from("notifications").insert({
+        recipient_id: job.customer_id,
+        type: "start_date_tbc",
+        message: `Your care start date is still to be confirmed. ${agencyName} will be in touch.`,
+        related_job_id: job.id,
+      });
+    }
     toast.success("Assessment marked as complete. The customer has been notified.");
     setMarkingAssessment(false);
+    setShowAssessmentModal(false);
+    setAssessmentStartDate(undefined);
+    setAssessmentTbc(false);
+    loadData();
+  }
+
+  async function handleSaveStartDate() {
+    if (!job || !userId) return;
+    setSavingStartDate(true);
+    const startDateValue = editStartTbc || !editStartDate ? null : format(editStartDate, "yyyy-MM-dd");
+    const { error } = await supabase.from("jobs").update({ start_date: startDateValue }).eq("id", job.id);
+    if (error) {
+      toast.error("Failed to update: " + error.message);
+      setSavingStartDate(false);
+      return;
+    }
+    const agencyName = job.agency_profiles?.agency_name || "the agency";
+    if (startDateValue) {
+      await supabase.from("notifications").insert({
+        recipient_id: job.customer_id,
+        type: "start_date_set",
+        message: `Your care start date with ${agencyName} has been confirmed as ${format(editStartDate!, "d MMMM yyyy")}.`,
+        related_job_id: job.id,
+      });
+    } else {
+      await supabase.from("notifications").insert({
+        recipient_id: job.customer_id,
+        type: "start_date_tbc",
+        message: `Your care start date is still to be confirmed. ${agencyName} will be in touch.`,
+        related_job_id: job.id,
+      });
+    }
+    toast.success("Start date updated.");
+    setSavingStartDate(false);
+    setShowEditStartDate(false);
     loadData();
   }
 
@@ -338,7 +406,7 @@ export default function JobDetailPage() {
                   <p className="mt-0.5 text-sm text-muted-foreground">Once marked complete, the customer will be asked to confirm whether they wish to proceed.</p>
                 </div>
               </div>
-              <Button onClick={handleMarkAssessmentComplete} disabled={markingAssessment}>
+              <Button onClick={() => setShowAssessmentModal(true)} disabled={markingAssessment}>
                 {markingAssessment ? "Updating..." : "Mark Assessment Complete"}
               </Button>
             </div>
@@ -416,8 +484,22 @@ export default function JobDetailPage() {
               <p className="font-serif text-lg text-foreground">{job.care_requests?.frequency}</p>
             </div>
             <div className="rounded-lg border border-border p-3">
-              <p className="text-xs text-muted-foreground">Start Date</p>
-              <p className="font-serif text-lg text-foreground">{job.start_date ? new Date(job.start_date).toLocaleDateString() : "TBD"}</p>
+              <div className="flex items-center justify-between">
+                <p className="text-xs text-muted-foreground">Start Date</p>
+                {isAgency && ["assessment_complete", "active"].includes(job.status) && (
+                  <button
+                    className="text-xs text-primary hover:underline flex items-center gap-0.5"
+                    onClick={() => {
+                      setEditStartDate(job.start_date ? new Date(job.start_date) : undefined);
+                      setEditStartTbc(!job.start_date);
+                      setShowEditStartDate(true);
+                    }}
+                  >
+                    <Pencil className="h-3 w-3" /> Edit
+                  </button>
+                )}
+              </div>
+              <p className="font-serif text-lg text-foreground">{job.start_date ? new Date(job.start_date).toLocaleDateString() : "To Be Confirmed"}</p>
             </div>
             <div className="rounded-lg border border-border p-3">
               <p className="text-xs text-muted-foreground">Total Paid</p>
@@ -670,6 +752,123 @@ export default function JobDetailPage() {
           </div>
         )}
       </div>
+
+      {/* Assessment Complete Modal */}
+      <Dialog open={showAssessmentModal} onOpenChange={setShowAssessmentModal}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Mark Assessment Complete</DialogTitle>
+            <DialogDescription>
+              Set an agreed start date for care, or leave it to be confirmed later.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div>
+              <label className="mb-1.5 block text-sm font-medium text-foreground">Agreed Start Date</label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className={cn(
+                      "w-full justify-start text-left font-normal",
+                      !assessmentStartDate && "text-muted-foreground"
+                    )}
+                    disabled={assessmentTbc}
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {assessmentStartDate ? format(assessmentStartDate, "PPP") : <span>Pick a date</span>}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={assessmentStartDate}
+                    onSelect={setAssessmentStartDate}
+                    initialFocus
+                    className={cn("p-3 pointer-events-auto")}
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="tbc"
+                checked={assessmentTbc}
+                onCheckedChange={(checked) => {
+                  setAssessmentTbc(!!checked);
+                  if (checked) setAssessmentStartDate(undefined);
+                }}
+              />
+              <label htmlFor="tbc" className="text-sm text-foreground cursor-pointer">To Be Confirmed</label>
+            </div>
+            <p className="text-xs text-muted-foreground">You can update the start date later from the job detail page.</p>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowAssessmentModal(false)}>Cancel</Button>
+            <Button onClick={handleMarkAssessmentComplete} disabled={markingAssessment}>
+              {markingAssessment ? "Saving..." : "Confirm"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Start Date Modal */}
+      <Dialog open={showEditStartDate} onOpenChange={setShowEditStartDate}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Edit Start Date</DialogTitle>
+            <DialogDescription>
+              Update the agreed care start date. The customer will be notified.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div>
+              <label className="mb-1.5 block text-sm font-medium text-foreground">Agreed Start Date</label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className={cn(
+                      "w-full justify-start text-left font-normal",
+                      !editStartDate && "text-muted-foreground"
+                    )}
+                    disabled={editStartTbc}
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {editStartDate ? format(editStartDate, "PPP") : <span>Pick a date</span>}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={editStartDate}
+                    onSelect={setEditStartDate}
+                    initialFocus
+                    className={cn("p-3 pointer-events-auto")}
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="edit-tbc"
+                checked={editStartTbc}
+                onCheckedChange={(checked) => {
+                  setEditStartTbc(!!checked);
+                  if (checked) setEditStartDate(undefined);
+                }}
+              />
+              <label htmlFor="edit-tbc" className="text-sm text-foreground cursor-pointer">To Be Confirmed</label>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowEditStartDate(false)}>Cancel</Button>
+            <Button onClick={handleSaveStartDate} disabled={savingStartDate}>
+              {savingStartDate ? "Saving..." : "Save"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
