@@ -11,12 +11,15 @@ Deno.serve(async (req) => {
 
   try {
     const { locationId, providerId } = await req.json();
+    const CQC_API_KEY = Deno.env.get("CQC_API_KEY");
+
+    const BASE_URL = "https://api.service.cqc.org.uk/public/v1";
 
     let url: string;
     if (locationId) {
-      url = `https://api.cqc.org.uk/public/v1/locations/${encodeURIComponent(locationId)}?partnerCode=CAREMATCH`;
+      url = `${BASE_URL}/locations/${encodeURIComponent(locationId)}?partnerCode=CAREMATCH`;
     } else if (providerId) {
-      url = `https://api.cqc.org.uk/public/v1/providers/${encodeURIComponent(providerId)}?partnerCode=CAREMATCH`;
+      url = `${BASE_URL}/providers/${encodeURIComponent(providerId)}?partnerCode=CAREMATCH`;
     } else {
       return new Response(JSON.stringify({ error: "No locationId or providerId provided" }), {
         status: 400,
@@ -24,7 +27,12 @@ Deno.serve(async (req) => {
       });
     }
 
-    const res = await fetch(url);
+    const res = await fetch(url, {
+      headers: {
+        "Ocp-Apim-Subscription-Key": CQC_API_KEY ?? "",
+      },
+    });
+
     if (!res.ok) {
       return new Response(JSON.stringify({ error: "CQC API returned " + res.status }), {
         status: 502,
@@ -34,12 +42,11 @@ Deno.serve(async (req) => {
 
     const data = await res.json();
 
-    // Extract what we need
     const overallRating = data.currentRatings?.overall?.rating ?? null;
     const firstReport = Array.isArray(data.reports) && data.reports.length > 0 ? data.reports[0] : null;
     const reportDate = firstReport?.reportDate ?? null;
     const reportUri = firstReport?.reportUri
-      ? `https://api.cqc.org.uk/public/v1${firstReport.reportUri}`
+      ? `https://api.service.cqc.org.uk/public/v1${firstReport.reportUri}`
       : null;
 
     return new Response(
