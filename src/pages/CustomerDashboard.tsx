@@ -68,7 +68,7 @@ export default function CustomerDashboard() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 
-    const fourteenDaysAgo = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString();
+    const fourteenDaysAgo = new Date(Date.now() - 1 * 60 * 1000).toISOString(); // TEMP: 1 minute for testing (change back to 14 * 24 * 60 * 60 * 1000)
 
     const [reqResult, jobResult, existingReviews] = await Promise.all([
       supabase.from("care_requests").select("*").eq("creator_id", user.id).order("created_at", { ascending: false }),
