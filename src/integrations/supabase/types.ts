@@ -431,6 +431,51 @@ export type Database = {
         }
         Relationships: []
       }
+      reviews: {
+        Row: {
+          agency_profile_id: string
+          comment: string | null
+          created_at: string
+          customer_id: string
+          id: string
+          job_id: string
+          star_rating: number
+        }
+        Insert: {
+          agency_profile_id: string
+          comment?: string | null
+          created_at?: string
+          customer_id: string
+          id?: string
+          job_id: string
+          star_rating: number
+        }
+        Update: {
+          agency_profile_id?: string
+          comment?: string | null
+          created_at?: string
+          customer_id?: string
+          id?: string
+          job_id?: string
+          star_rating?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reviews_agency_profile_id_fkey"
+            columns: ["agency_profile_id"]
+            isOneToOne: false
+            referencedRelation: "agency_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reviews_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "jobs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       timesheets: {
         Row: {
           approved_at: string | null

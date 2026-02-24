@@ -3,8 +3,10 @@ import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Header } from "@/components/Header";
 import { supabase } from "@/integrations/supabase/client";
-import { Plus, FileText, Briefcase, Bell, MapPin } from "lucide-react";
+import { Plus, FileText, Briefcase, Bell, MapPin, Star } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { Textarea } from "@/components/ui/textarea";
+import { toast } from "sonner";
 
 type CareRequest = {
   id: string;
@@ -34,6 +36,12 @@ type Job = {
   } | null;
 };
 
+type ReviewableJob = {
+  id: string;
+  agency_profile_id: string;
+  agency_name: string;
+};
+
 const statusColors: Record<string, string> = {
   open: "bg-accent text-accent-foreground",
   accepted: "bg-cqc-good text-primary-foreground",
@@ -46,6 +54,11 @@ export default function CustomerDashboard() {
   const [requests, setRequests] = useState<CareRequest[]>([]);
   const [jobs, setJobs] = useState<Job[]>([]);
   const [loading, setLoading] = useState(true);
+  const [reviewableJobs, setReviewableJobs] = useState<ReviewableJob[]>([]);
+  const [reviewingJobId, setReviewingJobId] = useState<string | null>(null);
+  const [reviewRating, setReviewRating] = useState(0);
+  const [reviewComment, setReviewComment] = useState("");
+  const [submittingReview, setSubmittingReview] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -55,14 +68,61 @@ export default function CustomerDashboard() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 
-    const [reqResult, jobResult] = await Promise.all([
+    const fourteenDaysAgo = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString();
+
+    const [reqResult, jobResult, existingReviews] = await Promise.all([
       supabase.from("care_requests").select("*").eq("creator_id", user.id).order("created_at", { ascending: false }),
       supabase.from("jobs").select("*, care_requests(postcode, care_types), agency_profiles(agency_name, cqc_rating)").eq("customer_id", user.id).order("created_at", { ascending: false }),
+      supabase.from("reviews").select("job_id").eq("customer_id", user.id),
     ]);
 
     setRequests((reqResult.data as CareRequest[]) || []);
-    setJobs((jobResult.data as Job[]) || []);
+    const allJobs = (jobResult.data as Job[]) || [];
+    setJobs(allJobs);
+
+    const reviewedJobIds = new Set((existingReviews.data || []).map((r: any) => r.job_id));
+
+    const reviewable = allJobs
+      .filter(j =>
+        (j.status === "active" || j.status === "completed") &&
+        j.start_date &&
+        new Date(j.start_date).toISOString() <= fourteenDaysAgo &&
+        !reviewedJobIds.has(j.id)
+      )
+      .map(j => ({
+        id: j.id,
+        agency_profile_id: j.agency_profile_id,
+        agency_name: j.agency_profiles?.agency_name || "Unknown Agency",
+      }));
+
+    setReviewableJobs(reviewable);
     setLoading(false);
+  }
+
+  async function handleSubmitReview(job: ReviewableJob) {
+    if (reviewRating < 1) { toast.error("Please select a star rating"); return; }
+    setSubmittingReview(true);
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    const { error } = await supabase.from("reviews").insert({
+      job_id: job.id,
+      customer_id: user.id,
+      agency_profile_id: job.agency_profile_id,
+      star_rating: reviewRating,
+      comment: reviewComment,
+    } as any);
+
+    setSubmittingReview(false);
+    if (error) {
+      toast.error("Failed to submit review: " + error.message);
+    } else {
+      toast.success("Review submitted — thank you!");
+      setReviewableJobs(prev => prev.filter(j => j.id !== job.id));
+      setReviewingJobId(null);
+      setReviewRating(0);
+      setReviewComment("");
+    }
   }
 
   const tabs = [
@@ -84,6 +144,58 @@ export default function CustomerDashboard() {
             <Link to="/create-request"><Plus className="mr-2 h-4 w-4" /> Post a Care Request</Link>
           </Button>
         </div>
+
+        {/* Review Banners */}
+        {reviewableJobs.map((rj) => (
+          <div key={rj.id} className="mt-6 rounded-xl border border-primary/30 bg-primary/5 p-5">
+            <div className="flex items-start justify-between gap-4">
+              <div className="flex-1">
+                <p className="font-medium text-foreground">
+                  <Star className="mr-1 inline h-4 w-4 text-primary" />
+                  How is your care with <span className="font-semibold">{rj.agency_name}</span>?
+                </p>
+                <p className="mt-1 text-sm text-muted-foreground">Leave a review to help other families find great care.</p>
+              </div>
+              {reviewingJobId !== rj.id && (
+                <Button size="sm" onClick={() => { setReviewingJobId(rj.id); setReviewRating(0); setReviewComment(""); }}>
+                  Write a Review
+                </Button>
+              )}
+            </div>
+            {reviewingJobId === rj.id && (
+              <div className="mt-4 space-y-3">
+                <div>
+                  <p className="mb-1 text-sm font-medium text-foreground">Rating</p>
+                  <div className="flex gap-1">
+                    {[1, 2, 3, 4, 5].map((s) => (
+                      <button
+                        key={s}
+                        onClick={() => setReviewRating(s)}
+                        className="transition-transform hover:scale-110"
+                      >
+                        <Star
+                          className={`h-7 w-7 ${s <= reviewRating ? "fill-primary text-primary" : "text-muted-foreground/40"}`}
+                        />
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <Textarea
+                  placeholder="Tell others about your experience (optional)..."
+                  value={reviewComment}
+                  onChange={(e) => setReviewComment(e.target.value)}
+                  rows={3}
+                />
+                <div className="flex gap-2">
+                  <Button onClick={() => handleSubmitReview(rj)} disabled={submittingReview}>
+                    {submittingReview ? "Submitting..." : "Submit Review"}
+                  </Button>
+                  <Button variant="outline" onClick={() => setReviewingJobId(null)}>Cancel</Button>
+                </div>
+              </div>
+            )}
+          </div>
+        ))}
 
         {/* Stats */}
         <div className="mt-8 grid gap-4 sm:grid-cols-3">
