@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { CQCRatingBadge } from "@/components/CQCRatingBadge";
 import {
-  MapPin, Clock, Briefcase, CalendarDays, ArrowLeft, Plus, CheckCircle, AlertCircle, User, Phone, Home,
+  MapPin, Clock, Briefcase, CalendarDays, ArrowLeft, Plus, CheckCircle, AlertCircle, User, Phone, Home, FileText,
 } from "lucide-react";
 import {
   Table, TableHeader, TableBody, TableHead, TableRow, TableCell,
@@ -243,6 +243,15 @@ export default function JobDetailPage() {
                 )}
               </div>
             </div>
+          </div>
+
+          {/* View Care Agreement Button */}
+          <div className="mt-4">
+            <Button asChild variant="outline" className="w-full">
+              <Link to={`/agreement/${job.id}`}>
+                <FileText className="mr-2 h-4 w-4" /> View Care Agreement
+              </Link>
+            </Button>
           </div>
         </div>
 

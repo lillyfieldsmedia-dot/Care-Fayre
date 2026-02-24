@@ -15,6 +15,7 @@ import Profile from "./pages/Profile";
 import JobDetail from "./pages/JobDetail";
 import AdminDashboard from "./pages/AdminDashboard";
 import AgencyProfile from "./pages/AgencyProfile";
+import CareAgreement from "./pages/CareAgreement";
 
 const queryClient = new QueryClient();
 
@@ -35,6 +36,7 @@ const App = () => (
           <Route path="/profile" element={<Profile />} />
           <Route path="/job/:id" element={<JobDetail />} />
           <Route path="/agency/:id" element={<AgencyProfile />} />
+          <Route path="/agreement/:jobId" element={<CareAgreement />} />
           <Route path="/admin" element={<AdminDashboard />} />
           <Route path="*" element={<NotFound />} />
         </Routes>

@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import { Header } from "@/components/Header";
 import { Button } from "@/components/ui/button";
 import { CQCRatingBadge } from "@/components/CQCRatingBadge";
@@ -18,6 +18,7 @@ import {
 
 export default function RequestDetail() {
   const { id } = useParams();
+  const navigate = useNavigate();
   const [request, setRequest] = useState<any>(null);
   const [bids, setBids] = useState<any[]>([]);
   const [userId, setUserId] = useState<string | null>(null);
@@ -66,7 +67,8 @@ export default function RequestDetail() {
       await supabase.from("bids").update({ status: "accepted" }).eq("id", bidId);
       await supabase.from("bids").update({ status: "rejected" }).eq("care_request_id", id).neq("id", bidId);
 
-      await supabase.from("jobs").insert({
+      // Create job with 'pending' status (not active until both agree)
+      const { data: jobData, error: jobError } = await supabase.from("jobs").insert({
         care_request_id: id,
         winning_bid_id: bidId,
         customer_id: userId,
@@ -75,10 +77,61 @@ export default function RequestDetail() {
         locked_hourly_rate: bid.hourly_rate,
         agreed_hours_per_week: request.hours_per_week,
         start_date: request.start_date,
+        status: "pending",
+      }).select("id").single();
+
+      if (jobError) throw jobError;
+
+      // Fetch data needed for agreement text
+      const [profileRes, agencyRes] = await Promise.all([
+        supabase.from("profiles").select("full_name, postcode").eq("user_id", userId!).single(),
+        supabase.from("agency_profiles").select("agency_name, cqc_provider_id").eq("id", bid.agency_profile_id).single(),
+      ]);
+
+      const holderProfile = profileRes.data;
+      const agencyProfile = agencyRes.data;
+
+      const STANDARD_TERMS = [
+        "Either party may cancel with 2 weeks' written notice via the platform.",
+        "Payment is collected weekly following timesheet approval.",
+        "The hourly rate is locked for the duration of this agreement and cannot be changed without a new agreement.",
+        "CareMatch UK acts as payment intermediary only and is not liable for the delivery of care services.",
+        "The agency confirms they hold current public liability insurance and all staff are DBS checked.",
+        "Any safeguarding concerns must be reported immediately to the relevant local authority.",
+      ];
+
+      const agreementText = `CARE AGREEMENT
+
+Account Holder: ${holderProfile?.full_name || "—"}
+Account Holder Address: ${holderProfile?.postcode || "—"}
+
+Care Recipient: ${request.recipient_name || "—"}
+Date of Birth: ${request.recipient_dob ? new Date(request.recipient_dob).toLocaleDateString() : "—"}
+Care Address: ${request.recipient_address || "—"}
+Relationship to Account Holder: ${request.relationship_to_holder || "—"}
+
+Agency: ${agencyProfile?.agency_name || "—"}
+CQC Provider ID: ${agencyProfile?.cqc_provider_id || "—"}
+
+Locked Hourly Rate: £${Number(bid.hourly_rate).toFixed(2)}
+Hours per Week: ${request.hours_per_week}
+Frequency: ${request.frequency}
+Start Date: ${request.start_date ? new Date(request.start_date).toLocaleDateString() : "TBD"}
+Care Types: ${(request.care_types || []).join(", ")}
+
+STANDARD TERMS:
+${STANDARD_TERMS.map((t: string, i: number) => `${i + 1}. ${t}`).join("\n")}`;
+
+      // Create contract
+      await supabase.from("contracts").insert({
+        job_id: jobData.id,
+        customer_id: userId,
+        agency_id: bid.bidder_id,
+        agreement_text: agreementText,
       });
 
-      toast.success("Bid accepted! A job has been created.");
-      loadData();
+      toast.success("Bid accepted! Please review and agree to the Care Agreement.");
+      navigate(`/agreement/${jobData.id}`);
     } catch (err: any) {
       toast.error(err.message || "Failed to accept bid");
     } finally {

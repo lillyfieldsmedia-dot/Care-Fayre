@@ -247,6 +247,47 @@ export type Database = {
           },
         ]
       }
+      contracts: {
+        Row: {
+          agency_agreed_at: string | null
+          agency_id: string
+          agreement_text: string
+          created_at: string
+          customer_agreed_at: string | null
+          customer_id: string
+          id: string
+          job_id: string
+        }
+        Insert: {
+          agency_agreed_at?: string | null
+          agency_id: string
+          agreement_text: string
+          created_at?: string
+          customer_agreed_at?: string | null
+          customer_id: string
+          id?: string
+          job_id: string
+        }
+        Update: {
+          agency_agreed_at?: string | null
+          agency_id?: string
+          agreement_text?: string
+          created_at?: string
+          customer_agreed_at?: string | null
+          customer_id?: string
+          id?: string
+          job_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contracts_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "jobs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       jobs: {
         Row: {
           agency_id: string
@@ -574,7 +615,13 @@ export type Database = {
       app_role: "customer" | "agency" | "admin"
       bid_status: "active" | "accepted" | "rejected" | "withdrawn"
       cqc_rating: "Outstanding" | "Good" | "Requires Improvement" | "Inadequate"
-      job_status: "active" | "paused" | "completed" | "disputed" | "cancelled"
+      job_status:
+        | "active"
+        | "paused"
+        | "completed"
+        | "disputed"
+        | "cancelled"
+        | "pending"
       request_status:
         | "open"
         | "accepting_bids"
@@ -711,7 +758,14 @@ export const Constants = {
       app_role: ["customer", "agency", "admin"],
       bid_status: ["active", "accepted", "rejected", "withdrawn"],
       cqc_rating: ["Outstanding", "Good", "Requires Improvement", "Inadequate"],
-      job_status: ["active", "paused", "completed", "disputed", "cancelled"],
+      job_status: [
+        "active",
+        "paused",
+        "completed",
+        "disputed",
+        "cancelled",
+        "pending",
+      ],
       request_status: [
         "open",
         "accepting_bids",
