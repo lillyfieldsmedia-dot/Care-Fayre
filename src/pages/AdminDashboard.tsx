@@ -207,7 +207,7 @@ export default function AdminDashboard() {
                   <thead>
                     <tr className="border-b border-border bg-muted/50">
                       <th className="px-4 py-3 text-left font-medium text-muted-foreground">Agency Name</th>
-                      <th className="px-4 py-3 text-left font-medium text-muted-foreground">CQC Provider ID</th>
+                      <th className="px-4 py-3 text-left font-medium text-muted-foreground">CQC Location ID</th>
                       <th className="px-4 py-3 text-left font-medium text-muted-foreground">CQC Location ID</th>
                       <th className="px-4 py-3 text-left font-medium text-muted-foreground">CQC Rating</th>
                       <th className="px-4 py-3 text-left font-medium text-muted-foreground">Registered</th>

@@ -116,7 +116,7 @@ Care Address: ${request.recipient_address || "—"}
 Relationship to Account Holder: ${request.relationship_to_holder || "—"}
 
 Agency: ${agencyProfile?.agency_name || "—"}
-CQC Provider ID: ${agencyProfile?.cqc_provider_id || "—"}
+CQC Location ID: ${agencyProfile?.cqc_provider_id || "—"}
 
 Locked Hourly Rate: £${Number(bid.hourly_rate).toFixed(2)}
 Hours per Week: ${request.hours_per_week}${overnightSection}

@@ -153,7 +153,7 @@ export default function AgencyProfile() {
               <div className="flex items-center gap-2 rounded-lg border border-border p-3">
                 <Building2 className="h-4 w-4 text-muted-foreground" />
                 <div>
-                  <p className="text-xs text-muted-foreground">CQC Provider ID</p>
+                  <p className="text-xs text-muted-foreground">CQC Location ID</p>
                   <p className="text-sm font-medium text-foreground">{profile.cqc_provider_id}</p>
                 </div>
               </div>

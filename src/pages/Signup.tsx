@@ -160,7 +160,7 @@ export default function Signup() {
                     </div>
                     <div className="grid gap-4 sm:grid-cols-2">
                       <div className="space-y-2">
-                        <Label htmlFor="cqcProvider">CQC Provider ID</Label>
+                        <Label htmlFor="cqcProvider">CQC Location ID</Label>
                         <Input id="cqcProvider" value={cqcProviderId} onChange={(e) => setCqcProviderId(e.target.value)} placeholder="1-XXXXXXXXX" />
                       </div>
                       <div className="space-y-2">
