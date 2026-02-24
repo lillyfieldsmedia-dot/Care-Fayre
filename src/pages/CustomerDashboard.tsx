@@ -181,9 +181,12 @@ export default function CustomerDashboard() {
     }
   }
 
+  const openRequestCount = requests.filter(r => r.status === "open" || r.status === "accepting_bids").length;
+  const activeJobCount = jobs.filter(j => j.status === "active").length;
+
   const tabs = [
-    { key: "requests" as const, label: "My Requests", icon: FileText, count: requests.length },
-    { key: "jobs" as const, label: "My Care", icon: Briefcase, count: jobs.length },
+    { key: "requests" as const, label: "My Requests", icon: FileText, count: openRequestCount || undefined },
+    { key: "jobs" as const, label: "My Care", icon: Briefcase, count: activeJobCount || undefined },
     { key: "notifications" as const, label: "Notifications", icon: Bell },
   ];
 
