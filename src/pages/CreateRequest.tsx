@@ -7,7 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Header } from "@/components/Header";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { ArrowLeft, ArrowRight, Check } from "lucide-react";
+import { ArrowLeft, ArrowRight, Check, Moon } from "lucide-react";
 
 const CARE_TYPES = [
   "Personal Care", "Dementia Care", "Companionship", "Medication Support",
@@ -30,11 +30,17 @@ export default function CreateRequest() {
   const [startDate, setStartDate] = useState("");
   const [description, setDescription] = useState("");
 
+  // Overnight care fields
+  const [nightsPerWeek, setNightsPerWeek] = useState(1);
+  const [nightType, setNightType] = useState<string>("");
+
   // Care recipient fields
   const [recipientName, setRecipientName] = useState("");
   const [recipientDob, setRecipientDob] = useState("");
   const [recipientAddress, setRecipientAddress] = useState("");
   const [relationshipToHolder, setRelationshipToHolder] = useState("");
+
+  const hasOvernight = careTypes.includes("Overnight Care");
 
   function toggleCareType(type: string) {
     setCareTypes((prev) => prev.includes(type) ? prev.filter((t) => t !== type) : [...prev, type]);
@@ -46,7 +52,6 @@ export default function CreateRequest() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Not logged in");
 
-      // Geocode postcode via Postcodes.io
       let lat: number | null = null;
       let lng: number | null = null;
       try {
@@ -58,7 +63,6 @@ export default function CreateRequest() {
         }
       } catch {}
 
-      // Get bid window from settings
       const { data: settings } = await supabase.from("app_settings").select("bid_window_hours").limit(1).single();
       const hours = settings?.bid_window_hours ?? 72;
       const deadline = new Date(Date.now() + hours * 60 * 60 * 1000).toISOString();
@@ -79,6 +83,8 @@ export default function CreateRequest() {
         recipient_dob: recipientDob || null,
         recipient_address: recipientAddress,
         relationship_to_holder: relationshipToHolder,
+        nights_per_week: hasOvernight ? nightsPerWeek : null,
+        night_type: hasOvernight ? nightType : null,
       } as any);
 
       if (error) throw error;
@@ -94,7 +100,7 @@ export default function CreateRequest() {
   const canProceed = [
     () => postcode.trim().length > 0 && careTypes.length > 0,
     () => recipientName.trim().length > 0 && recipientAddress.trim().length > 0 && relationshipToHolder.length > 0,
-    () => hoursPerWeek > 0,
+    () => hoursPerWeek > 0 && (!hasOvernight || (nightType.length > 0 && nightsPerWeek >= 1)),
     () => description.trim().length > 0,
     () => true,
   ];
@@ -208,6 +214,47 @@ export default function CreateRequest() {
                     ))}
                   </div>
                 </div>
+
+                {/* Overnight Care fields */}
+                {hasOvernight && (
+                  <div className="space-y-4 rounded-lg border border-primary/20 bg-primary/5 p-4">
+                    <div className="flex items-center gap-2">
+                      <Moon className="h-4 w-4 text-primary" />
+                      <span className="text-sm font-semibold text-foreground">Overnight Care Details</span>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="nightsPerWeek">Nights per Week</Label>
+                      <Input
+                        id="nightsPerWeek"
+                        type="number"
+                        min={1}
+                        max={7}
+                        value={nightsPerWeek}
+                        onChange={(e) => setNightsPerWeek(Math.max(1, Math.min(7, Number(e.target.value))))}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Night Type</Label>
+                      <div className="space-y-2">
+                        {[
+                          { value: "sleeping", label: "Sleeping night", desc: "Carer sleeps on site, available if needed" },
+                          { value: "waking", label: "Waking night", desc: "Carer is awake and active throughout the night" },
+                        ].map((opt) => (
+                          <button
+                            key={opt.value}
+                            type="button"
+                            onClick={() => setNightType(opt.value)}
+                            className={`w-full rounded-lg border p-3 text-left transition-colors ${nightType === opt.value ? "border-primary bg-primary/10" : "border-border bg-background hover:border-primary/50"}`}
+                          >
+                            <span className="text-sm font-medium text-foreground">{opt.label}</span>
+                            <p className="mt-0.5 text-xs text-muted-foreground">{opt.desc}</p>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
                 <div className="space-y-2">
                   <Label htmlFor="startDate">Preferred Start Date</Label>
                   <Input id="startDate" type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
@@ -249,6 +296,12 @@ export default function CreateRequest() {
                   <div className="flex justify-between"><span className="text-sm text-muted-foreground">Relationship</span><span className="font-medium text-foreground">{relationshipToHolder}</span></div>
                   <div className="flex justify-between"><span className="text-sm text-muted-foreground">Hours/Week</span><span className="font-medium text-foreground">{hoursPerWeek}</span></div>
                   <div className="flex justify-between"><span className="text-sm text-muted-foreground">Frequency</span><span className="font-medium text-foreground">{frequency}</span></div>
+                  {hasOvernight && (
+                    <>
+                      <div className="flex justify-between"><span className="text-sm text-muted-foreground">Nights/Week</span><span className="font-medium text-foreground">{nightsPerWeek}</span></div>
+                      <div className="flex justify-between"><span className="text-sm text-muted-foreground">Night Type</span><span className="font-medium text-foreground">{nightType === "sleeping" ? "Sleeping night" : "Waking night"}</span></div>
+                    </>
+                  )}
                   {startDate && <div className="flex justify-between"><span className="text-sm text-muted-foreground">Start Date</span><span className="font-medium text-foreground">{startDate}</span></div>}
                   <hr className="border-border" />
                   <p className="text-sm text-muted-foreground">{description}</p>

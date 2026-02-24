@@ -126,6 +126,7 @@ export type Database = {
           hourly_rate: number
           id: string
           notes: string | null
+          overnight_rate: number | null
           status: Database["public"]["Enums"]["bid_status"]
         }
         Insert: {
@@ -137,6 +138,7 @@ export type Database = {
           hourly_rate: number
           id?: string
           notes?: string | null
+          overnight_rate?: number | null
           status?: Database["public"]["Enums"]["bid_status"]
         }
         Update: {
@@ -148,6 +150,7 @@ export type Database = {
           hourly_rate?: number
           id?: string
           notes?: string | null
+          overnight_rate?: number | null
           status?: Database["public"]["Enums"]["bid_status"]
         }
         Relationships: [
@@ -181,6 +184,8 @@ export type Database = {
           latitude: number | null
           longitude: number | null
           lowest_bid_rate: number | null
+          night_type: string | null
+          nights_per_week: number | null
           postcode: string
           recipient_address: string
           recipient_dob: string | null
@@ -204,6 +209,8 @@ export type Database = {
           latitude?: number | null
           longitude?: number | null
           lowest_bid_rate?: number | null
+          night_type?: string | null
+          nights_per_week?: number | null
           postcode: string
           recipient_address?: string
           recipient_dob?: string | null
@@ -227,6 +234,8 @@ export type Database = {
           latitude?: number | null
           longitude?: number | null
           lowest_bid_rate?: number | null
+          night_type?: string | null
+          nights_per_week?: number | null
           postcode?: string
           recipient_address?: string
           recipient_dob?: string | null
