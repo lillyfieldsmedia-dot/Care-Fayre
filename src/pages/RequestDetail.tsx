@@ -161,6 +161,18 @@ ${STANDARD_TERMS.map((t: string, i: number) => `${i + 1}. ${t}`).join("\n")}`;
 
       if (error) throw error;
 
+      // Create notification for the request creator
+      const agencyProfileData = await supabase.from("agency_profiles").select("agency_name").eq("id", agencyProfile.id).single();
+      const agencyName = agencyProfileData.data?.agency_name || "An agency";
+      const careType = (request.care_types || []).join(", ") || "care";
+
+      await supabase.from("notifications").insert({
+        recipient_id: request.creator_id,
+        type: "new_bid",
+        message: `${agencyName} placed a bid of £${rate.toFixed(2)}/hr on your ${careType} request`,
+        related_request_id: id,
+      });
+
       // Update lowest_bid_rate and bids_count
       const newLowest = request.lowest_bid_rate ? Math.min(Number(request.lowest_bid_rate), rate) : rate;
       await supabase.from("care_requests").update({

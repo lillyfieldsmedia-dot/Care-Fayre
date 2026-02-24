@@ -60,8 +60,51 @@ export default function CustomerDashboard() {
   const [reviewComment, setReviewComment] = useState("");
   const [submittingReview, setSubmittingReview] = useState(false);
 
+  const [newBidBanners, setNewBidBanners] = useState<{ requestId: string; careType: string; message: string }[]>([]);
+
   useEffect(() => {
     loadData();
+  }, []);
+
+  // Real-time subscription for new bids on the user's requests
+  useEffect(() => {
+    let channel: any;
+    async function setupRealtime() {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      channel = supabase
+        .channel('customer-bid-notifications')
+        .on(
+          'postgres_changes',
+          {
+            event: 'INSERT',
+            schema: 'public',
+            table: 'notifications',
+            filter: `recipient_id=eq.${user.id}`,
+          },
+          (payload) => {
+            const notif = payload.new as any;
+            if (notif.type === 'new_bid' && notif.related_request_id) {
+              // Show banner
+              setNewBidBanners(prev => {
+                // Avoid duplicates
+                if (prev.some(b => b.requestId === notif.related_request_id)) return prev;
+                return [...prev, {
+                  requestId: notif.related_request_id,
+                  careType: '',
+                  message: notif.message,
+                }];
+              });
+              // Refresh data to update bid counts
+              loadData();
+            }
+          }
+        )
+        .subscribe();
+    }
+    setupRealtime();
+    return () => { if (channel) supabase.removeChannel(channel); };
   }, []);
 
   async function loadData() {
@@ -76,7 +119,19 @@ export default function CustomerDashboard() {
       supabase.from("reviews").select("job_id").eq("customer_id", user.id),
     ]);
 
-    setRequests((reqResult.data as CareRequest[]) || []);
+    // Fetch actual bid counts for each request
+    const reqs = (reqResult.data as CareRequest[]) || [];
+    if (reqs.length > 0) {
+      const bidCountPromises = reqs.map(r =>
+        supabase.from("bids").select("id", { count: "exact", head: true }).eq("care_request_id", r.id)
+      );
+      const bidCountResults = await Promise.all(bidCountPromises);
+      reqs.forEach((r, i) => {
+        r.bids_count = bidCountResults[i].count ?? 0;
+      });
+    }
+
+    setRequests(reqs);
     const allJobs = (jobResult.data as Job[]) || [];
     setJobs(allJobs);
 
@@ -144,6 +199,26 @@ export default function CustomerDashboard() {
             <Link to="/create-request"><Plus className="mr-2 h-4 w-4" /> Post a Care Request</Link>
           </Button>
         </div>
+
+        {/* New Bid Banners */}
+        {newBidBanners.map((banner) => (
+          <div key={banner.requestId} className="mt-6 rounded-xl border border-accent/30 bg-accent/10 p-5">
+            <div className="flex items-center justify-between gap-4">
+              <div className="flex items-center gap-2">
+                <Bell className="h-4 w-4 text-accent-foreground" />
+                <p className="font-medium text-foreground">{banner.message}</p>
+              </div>
+              <Button size="sm" asChild>
+                <Link
+                  to={`/request/${banner.requestId}`}
+                  onClick={() => setNewBidBanners(prev => prev.filter(b => b.requestId !== banner.requestId))}
+                >
+                  View Bids
+                </Link>
+              </Button>
+            </div>
+          </div>
+        ))}
 
         {/* Review Banners */}
         {reviewableJobs.map((rj) => (
