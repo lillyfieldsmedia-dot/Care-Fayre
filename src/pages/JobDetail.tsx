@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { CQCRatingBadge } from "@/components/CQCRatingBadge";
 import {
-  MapPin, Clock, Briefcase, CalendarDays, ArrowLeft, Plus, CheckCircle, AlertCircle,
+  MapPin, Clock, Briefcase, CalendarDays, ArrowLeft, Plus, CheckCircle, AlertCircle, User, Phone, Home,
 } from "lucide-react";
 import {
   Table, TableHeader, TableBody, TableHead, TableRow, TableCell,
@@ -26,6 +26,10 @@ type JobDetail = {
     care_types: string[];
     description: string | null;
     frequency: string;
+    recipient_name: string;
+    recipient_dob: string | null;
+    recipient_address: string;
+    relationship_to_holder: string;
   } | null;
   agency_profiles: {
     id: string;
@@ -76,6 +80,7 @@ export default function JobDetailPage() {
   const [tsHours, setTsHours] = useState("");
   const [tsNotes, setTsNotes] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [customerProfile, setCustomerProfile] = useState<{ full_name: string; phone: string | null } | null>(null);
 
   useEffect(() => {
     loadData();
@@ -87,14 +92,22 @@ export default function JobDetailPage() {
     setUserId(user.id);
 
     const [jobRes, tsRes, payRes] = await Promise.all([
-      supabase.from("jobs").select("*, care_requests(postcode, care_types, description, frequency), agency_profiles(id, agency_name, cqc_rating, cqc_verified)").eq("id", id).single(),
+      supabase.from("jobs").select("*, care_requests(postcode, care_types, description, frequency, recipient_name, recipient_dob, recipient_address, relationship_to_holder), agency_profiles(id, agency_name, cqc_rating, cqc_verified)").eq("id", id).single(),
       supabase.from("timesheets").select("*").eq("job_id", id).order("week_starting", { ascending: false }),
       supabase.from("payments").select("*").eq("job_id", id).order("created_at", { ascending: false }),
     ]);
 
-    setJob((jobRes.data as JobDetail) || null);
+    const jobData = (jobRes.data as any as JobDetail) || null;
+    setJob(jobData);
     setTimesheets((tsRes.data as Timesheet[]) || []);
     setPayments((payRes.data as Payment[]) || []);
+
+    // Fetch customer profile for account holder name & phone
+    if (jobData) {
+      const { data: profile } = await supabase.from("profiles").select("full_name, phone").eq("user_id", jobData.customer_id).single();
+      setCustomerProfile(profile as any);
+    }
+
     setLoading(false);
   }
 
@@ -155,6 +168,9 @@ export default function JobDetailPage() {
 
   const isAgency = userId === job.agency_id;
   const isCustomer = userId === job.customer_id;
+  const showRecipientDetails = isAgency && (job.status === "active" || job.status === "completed");
+  const recipientName = job.care_requests?.recipient_name;
+  const holderName = customerProfile?.full_name;
 
   return (
     <div className="min-h-screen bg-background">
@@ -169,10 +185,17 @@ export default function JobDetailPage() {
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div className="flex flex-col gap-2">
               <div className="flex items-center gap-2">
-                <MapPin className="h-5 w-5 text-primary" />
-                <h1 className="font-serif text-2xl text-foreground">{job.care_requests?.postcode}</h1>
+                <h1 className="font-serif text-2xl text-foreground">
+                  {recipientName || job.care_requests?.postcode}
+                </h1>
                 <Badge className={statusColors[job.status] || "bg-muted"}>{job.status}</Badge>
               </div>
+              {recipientName && (
+                <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                  <span><MapPin className="mr-1 inline h-3.5 w-3.5" />{job.care_requests?.postcode}</span>
+                  {holderName && <span><User className="mr-1 inline h-3.5 w-3.5" />Account holder: {holderName}</span>}
+                </div>
+              )}
               <div className="flex flex-wrap gap-1">
                 {job.care_requests?.care_types.map((ct) => (
                   <span key={ct} className="rounded bg-secondary px-2 py-0.5 text-xs text-secondary-foreground">{ct}</span>
@@ -222,6 +245,51 @@ export default function JobDetailPage() {
             </div>
           </div>
         </div>
+
+        {/* Care Recipient Details — agency only, active/completed jobs */}
+        {showRecipientDetails && (
+          <div className="mt-6 rounded-xl border border-border bg-card p-6">
+            <h2 className="font-serif text-xl text-foreground">Care Recipient Details</h2>
+            <p className="mb-4 text-sm text-muted-foreground">This information is confidential and shared for care delivery purposes only.</p>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="flex items-start gap-3 rounded-lg border border-border p-3">
+                <User className="mt-0.5 h-4 w-4 text-primary" />
+                <div>
+                  <p className="text-xs text-muted-foreground">Full Name</p>
+                  <p className="font-medium text-foreground">{job.care_requests?.recipient_name || "—"}</p>
+                </div>
+              </div>
+              <div className="flex items-start gap-3 rounded-lg border border-border p-3">
+                <CalendarDays className="mt-0.5 h-4 w-4 text-primary" />
+                <div>
+                  <p className="text-xs text-muted-foreground">Date of Birth</p>
+                  <p className="font-medium text-foreground">{job.care_requests?.recipient_dob ? new Date(job.care_requests.recipient_dob).toLocaleDateString() : "—"}</p>
+                </div>
+              </div>
+              <div className="flex items-start gap-3 rounded-lg border border-border p-3 sm:col-span-2">
+                <Home className="mt-0.5 h-4 w-4 text-primary" />
+                <div>
+                  <p className="text-xs text-muted-foreground">Full Care Address</p>
+                  <p className="font-medium text-foreground whitespace-pre-line">{job.care_requests?.recipient_address || "—"}</p>
+                </div>
+              </div>
+              <div className="flex items-start gap-3 rounded-lg border border-border p-3">
+                <User className="mt-0.5 h-4 w-4 text-primary" />
+                <div>
+                  <p className="text-xs text-muted-foreground">Relationship to Account Holder</p>
+                  <p className="font-medium text-foreground">{job.care_requests?.relationship_to_holder || "—"}</p>
+                </div>
+              </div>
+              <div className="flex items-start gap-3 rounded-lg border border-border p-3">
+                <Phone className="mt-0.5 h-4 w-4 text-primary" />
+                <div>
+                  <p className="text-xs text-muted-foreground">Account Holder ({holderName || "—"})</p>
+                  <p className="font-medium text-foreground">{customerProfile?.phone || "—"}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Timesheets */}
         <div className="mt-8">
