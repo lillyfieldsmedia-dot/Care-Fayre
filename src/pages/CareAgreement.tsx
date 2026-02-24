@@ -121,13 +121,13 @@ export default function CareAgreement() {
         supabase.from("notifications").insert({
           recipient_id: contract.customer_id,
           type: "assessment_pending",
-          message: `Your Intent to Proceed with ${agencyName} has been signed. They will be in touch shortly to arrange a care assessment.`,
+          message: `Your Rate Agreement with ${agencyName} has been signed. They will be in touch shortly to arrange a care assessment.`,
           related_job_id: contract.job_id,
         }),
         supabase.from("notifications").insert({
           recipient_id: contract.agency_id,
           type: "assessment_pending",
-          message: `Your Intent to Proceed with ${customerName} is signed. Please contact them as soon as possible to arrange a care assessment.`,
+          message: `Your Rate Agreement with ${customerName} is signed. Please contact them as soon as possible to arrange a care assessment.`,
           related_job_id: contract.job_id,
         }),
       ]);
@@ -181,7 +181,7 @@ export default function CareAgreement() {
 
         <div className="rounded-xl border border-border bg-card p-6">
           <div className="flex items-center justify-between">
-            <h1 className="font-serif text-2xl text-foreground">Intent to Proceed</h1>
+            <h1 className="font-serif text-2xl text-foreground">Rate Agreement</h1>
             {bothAgreed ? (
               <Badge className="bg-accent text-accent-foreground"><CheckCircle className="mr-1 h-3 w-3" /> Fully Signed</Badge>
             ) : (
@@ -326,7 +326,7 @@ export default function CareAgreement() {
                     className="mt-0.5"
                   />
                   <label htmlFor="agree" className="text-sm text-foreground cursor-pointer">
-                    I agree to this Intent to Proceed and all the standard terms listed above.
+                    I agree to this Rate Agreement and all the standard terms listed above.
                   </label>
                 </div>
                 <Button
@@ -334,7 +334,7 @@ export default function CareAgreement() {
                   disabled={!agreed || submitting}
                   onClick={handleAgree}
                 >
-                  {submitting ? "Submitting..." : "Sign Intent to Proceed"}
+                  {submitting ? "Submitting..." : "Sign Rate Agreement"}
                 </Button>
               </div>
             )}
@@ -342,7 +342,7 @@ export default function CareAgreement() {
             {alreadyAgreed && !bothAgreed && (
               <div className="rounded-lg border border-accent/30 bg-accent/5 p-4 text-center">
                 <CheckCircle className="mx-auto h-6 w-6 text-accent" />
-                <p className="mt-2 font-medium text-foreground">You have signed this Intent to Proceed</p>
+                <p className="mt-2 font-medium text-foreground">You have signed this Rate Agreement</p>
                 <p className="text-sm text-muted-foreground">Waiting for the other party to sign before the assessment stage begins.</p>
                 <Button asChild className="mt-3" variant="outline">
                   <Link to={`/job/${contract.job_id}`}>View Job Details</Link>

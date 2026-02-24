@@ -382,7 +382,7 @@ export default function JobDetailPage() {
               <div className="flex items-center gap-3">
                 <AlertCircle className="h-5 w-5 shrink-0 text-destructive" />
                 <div>
-                  <p className="font-medium text-foreground">Action required: Please sign the Intent to Proceed to begin the assessment stage</p>
+                  <p className="font-medium text-foreground">Action required: Please sign the Rate Agreement to begin the assessment stage</p>
                   <p className="mt-0.5 text-sm text-muted-foreground">The customer has signed. Review and sign to proceed.</p>
                 </div>
               </div>
@@ -523,12 +523,12 @@ export default function JobDetailPage() {
             </div>
           </div>
 
-          {/* View Intent to Proceed Button — visible once customer has signed */}
+          {/* View Rate Agreement Button — visible once customer has signed */}
           {showAgreementButton && (
             <div className="mt-4">
               <Button asChild variant="outline" className="w-full">
                 <Link to={`/agreement/${job.id}`}>
-                  <FileText className="mr-2 h-4 w-4" /> View Intent to Proceed
+                  <FileText className="mr-2 h-4 w-4" /> View Rate Agreement
                 </Link>
               </Button>
             </div>
