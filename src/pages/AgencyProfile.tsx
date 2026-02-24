@@ -125,7 +125,7 @@ export default function AgencyProfile() {
             <div>
               <h1 className="font-serif text-3xl text-foreground">{profile.agency_name}</h1>
               <div className="mt-2 flex items-center gap-3">
-                <CQCRatingBadge rating={profile.cqc_rating} />
+                {profile.cqc_rating && <CQCRatingBadge rating={profile.cqc_rating} />}
                 {profile.cqc_verified && (
                   <span className="text-xs text-accent font-medium">✓ CQC Verified</span>
                 )}
