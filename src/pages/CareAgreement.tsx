@@ -74,7 +74,7 @@ Care Address: ${params.recipientAddress}
 Relationship to Account Holder: ${params.relationship}
 
 Agency: ${params.agencyName}
-CQC Provider ID: ${params.cqcId}
+CQC Location ID: ${params.cqcId}
 
 Locked Hourly Rate: £${params.hourlyRate}
 Hours per Week: ${params.hoursPerWeek}
@@ -256,7 +256,7 @@ export default function CareAgreement() {
                   <p className="font-medium text-foreground">{job.agency_profiles?.agency_name || "—"}</p>
                 </div>
                 <div className="rounded-lg border border-border p-3">
-                  <p className="text-xs text-muted-foreground">CQC Provider ID</p>
+                  <p className="text-xs text-muted-foreground">CQC Location ID</p>
                   <p className="font-medium text-foreground">{job.agency_profiles?.cqc_provider_id || "—"}</p>
                 </div>
               </div>
