@@ -24,7 +24,25 @@ type CQCData = {
   overallRating: string | null;
   reportDate: string | null;
   reportUri: string | null;
+  registrationDate: string | null;
+  registrationStatus: string | null;
 };
+
+function getNoRatingBadge(data: CQCData): string {
+  if (data.registrationStatus && data.registrationStatus !== "Registered") {
+    return "CQC status unavailable";
+  }
+  if (data.registrationDate) {
+    const regDate = new Date(data.registrationDate);
+    const oneYearAgo = new Date();
+    oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
+    if (regDate > oneYearAgo) {
+      return "Awaiting first inspection";
+    }
+    return "Inspection pending";
+  }
+  return "CQC status unavailable";
+}
 
 export function CQCLiveInfo({ locationId, providerId }: CQCLiveInfoProps) {
   const [data, setData] = useState<CQCData | null>(null);
@@ -59,17 +77,23 @@ export function CQCLiveInfo({ locationId, providerId }: CQCLiveInfoProps) {
 
   if (error || !data) {
     return (
-      <div className="mt-6 rounded-lg border border-border bg-muted/50 p-4">
-        <div className="flex items-center gap-2 text-muted-foreground">
-          <AlertCircle className="h-4 w-4" />
-          <span className="text-sm">CQC status unavailable</span>
+      <div className="mt-6 rounded-lg border border-border bg-muted/50 p-4 space-y-3">
+        <div className="flex items-center gap-3 flex-wrap">
+          <span className="text-sm font-medium text-foreground">CQC Rating:</span>
+          <span className="inline-flex items-center rounded-full px-3 py-0.5 text-xs font-semibold bg-muted text-muted-foreground">
+            CQC status unavailable
+          </span>
         </div>
+        <p className="text-xs text-muted-foreground/70">Source: Care Quality Commission</p>
       </div>
     );
   }
 
-  const ratingLabel = data.overallRating ?? "Not Rated";
-  const badgeClass = ratingColors[ratingLabel] ?? "bg-muted text-muted-foreground";
+  const hasRating = !!data.overallRating;
+  const ratingLabel = data.overallRating ?? getNoRatingBadge(data);
+  const badgeClass = hasRating
+    ? (ratingColors[data.overallRating!] ?? "bg-muted text-muted-foreground")
+    : "bg-muted text-muted-foreground";
 
   return (
     <div className="mt-6 rounded-lg border border-border bg-card p-4 space-y-3">
@@ -80,14 +104,14 @@ export function CQCLiveInfo({ locationId, providerId }: CQCLiveInfoProps) {
         </span>
       </div>
 
-      {data.reportDate && (
+      {hasRating && data.reportDate && (
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
           <FileText className="h-4 w-4" />
           <span>Last inspected: {formatDate(data.reportDate)}</span>
         </div>
       )}
 
-      {data.reportUri && (
+      {hasRating && data.reportUri && (
         <a
           href={data.reportUri}
           target="_blank"

@@ -54,9 +54,11 @@ Deno.serve(async (req) => {
     const reportUri = firstReport?.reportUri
       ? `https://api.service.cqc.org.uk/public/v1${firstReport.reportUri}`
       : null;
+    const registrationDate = data.registrationDate ?? null;
+    const registrationStatus = data.registrationStatus ?? null;
 
     return new Response(
-      JSON.stringify({ overallRating, reportDate, reportUri }),
+      JSON.stringify({ overallRating, reportDate, reportUri, registrationDate, registrationStatus }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (e) {
