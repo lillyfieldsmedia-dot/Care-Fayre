@@ -16,6 +16,8 @@ import JobDetail from "./pages/JobDetail";
 import AdminDashboard from "./pages/AdminDashboard";
 import AgencyProfile from "./pages/AgencyProfile";
 import CareAgreement from "./pages/CareAgreement";
+import ForFamilies from "./pages/ForFamilies";
+import ForAgencies from "./pages/ForAgencies";
 
 const queryClient = new QueryClient();
 
@@ -27,6 +29,8 @@ const App = () => (
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<Index />} />
+          <Route path="/for-families" element={<ForFamilies />} />
+          <Route path="/for-agencies" element={<ForAgencies />} />
           <Route path="/signup" element={<Signup />} />
           <Route path="/login" element={<Login />} />
           <Route path="/dashboard" element={<CustomerDashboard />} />
