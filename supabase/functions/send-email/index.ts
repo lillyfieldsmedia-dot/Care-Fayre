@@ -65,6 +65,7 @@ Deno.serve(async (req) => {
     // Verify caller is authenticated
     const authHeader = req.headers.get("Authorization");
     if (!authHeader?.startsWith("Bearer ")) {
+      console.error("send-email: Missing or invalid Authorization header");
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -75,22 +76,27 @@ Deno.serve(async (req) => {
     const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
+    // Validate the caller's token using getUser (reliable across all supabase-js versions)
     const anonClient = createClient(supabaseUrl, supabaseAnonKey, {
       global: { headers: { Authorization: authHeader } },
     });
 
-    const token = authHeader.replace("Bearer ", "");
-    const { data: claimsData, error: claimsError } = await anonClient.auth.getClaims(token);
-    if (claimsError || !claimsData?.claims) {
+    const { data: userData, error: userError } = await anonClient.auth.getUser();
+    if (userError || !userData?.user) {
+      console.error("send-email: Auth validation failed:", userError?.message);
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
+    console.log(`send-email: Authenticated caller: ${userData.user.id}`);
+
     const { userId, subject, bodyText, ctaUrl, ctaText } = await req.json();
+    console.log(`send-email: Request to send email to userId=${userId}, subject="${subject}"`);
 
     if (!userId || !subject || !bodyText) {
+      console.error("send-email: Missing required fields", { userId, subject: !!subject, bodyText: !!bodyText });
       return new Response(JSON.stringify({ error: "Missing required fields: userId, subject, bodyText" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -99,22 +105,25 @@ Deno.serve(async (req) => {
 
     // Look up recipient email using service role
     const adminClient = createClient(supabaseUrl, supabaseServiceKey);
-    const { data: userData, error: userError } = await adminClient.auth.admin.getUserById(userId);
+    const { data: recipientData, error: recipientError } = await adminClient.auth.admin.getUserById(userId);
 
-    if (userError || !userData?.user?.email) {
-      console.error("Could not find user email:", userError?.message);
+    if (recipientError || !recipientData?.user?.email) {
+      console.error("send-email: Could not find user email for userId:", userId, "error:", recipientError?.message);
       return new Response(JSON.stringify({ error: "Recipient email not found" }), {
         status: 404,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    const recipientEmail = userData.user.email;
+    const recipientEmail = recipientData.user.email;
+    console.log(`send-email: Resolved recipient email: ${recipientEmail}`);
+
     const html = buildEmailHtml(subject, bodyText, ctaUrl, ctaText);
 
     // Send via Resend
     const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
     if (!RESEND_API_KEY) {
+      console.error("send-email: RESEND_API_KEY not configured");
       return new Response(JSON.stringify({ error: "RESEND_API_KEY not configured" }), {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -136,20 +145,22 @@ Deno.serve(async (req) => {
     });
 
     const resendBody = await resendRes.text();
-    console.log(`Resend status: ${resendRes.status}, body: ${resendBody}`);
+    console.log(`send-email: Resend response status=${resendRes.status}, body=${resendBody}`);
 
     if (!resendRes.ok) {
+      console.error(`send-email: Resend API error for ${recipientEmail}:`, resendBody);
       return new Response(JSON.stringify({ error: "Failed to send email", details: resendBody }), {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
+    console.log(`send-email: Successfully sent email to ${recipientEmail}`);
     return new Response(JSON.stringify({ success: true }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e) {
-    console.error("send-email error:", e);
+    console.error("send-email: Unhandled error:", e);
     return new Response(JSON.stringify({ error: "Internal error" }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
