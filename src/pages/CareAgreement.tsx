@@ -6,6 +6,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { ArrowLeft, CheckCircle, Clock } from "lucide-react";
+import { sendEmail } from "@/lib/sendEmail";
 import { Badge } from "@/components/ui/badge";
 
 type ContractData = {
@@ -113,10 +114,13 @@ export default function CareAgreement() {
       // Both agreed — set to assessment_pending (not active)
       await supabase.from("jobs").update({ status: "assessment_pending" } as any).eq("id", contract.job_id);
 
-      // Send notifications to both parties
       const agencyName = job.agency_profiles?.agency_name || "the agency";
       const customerName = holderProfile?.full_name || "the customer";
+      const startDateText = job.start_date ? new Date(job.start_date).toLocaleDateString() : "To be confirmed";
+      const rate = Number(job.locked_hourly_rate).toFixed(2);
+      const baseUrl = window.location.origin;
 
+      // Send notifications + emails to both parties
       await Promise.all([
         supabase.from("notifications").insert({
           recipient_id: contract.customer_id,
@@ -129,6 +133,20 @@ export default function CareAgreement() {
           type: "assessment_pending",
           message: `Your Rate Agreement with ${customerName} is signed. Please contact them as soon as possible to arrange a care assessment.`,
           related_job_id: contract.job_id,
+        }),
+        sendEmail({
+          userId: contract.customer_id,
+          subject: `Your care agreement with ${agencyName} is confirmed`,
+          bodyText: `Both parties have signed the rate agreement with ${agencyName}. Care is scheduled to begin on ${startDateText} at £${rate}/hr. You can view your agreement and job details at any time.`,
+          ctaUrl: `${baseUrl}/agreement/${contract.job_id}`,
+          ctaText: "View Agreement",
+        }),
+        sendEmail({
+          userId: contract.agency_id,
+          subject: "Rate agreement confirmed — care arrangement is live",
+          bodyText: `The rate agreement with ${customerName} has been signed by both parties. Care is scheduled to begin on ${startDateText} at £${rate}/hr.`,
+          ctaUrl: `${baseUrl}/job/${contract.job_id}`,
+          ctaText: "View Job",
         }),
       ]);
 
