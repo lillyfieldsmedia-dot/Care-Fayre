@@ -26,7 +26,6 @@ export default function Signup() {
 
   // Agency fields
   const [agencyName, setAgencyName] = useState("");
-  const [cqcProviderId, setCqcProviderId] = useState("");
   const [cqcLocationId, setCqcLocationId] = useState("");
   const [serviceRadius, setServiceRadius] = useState(25);
   const [cqcConfirm, setCqcConfirm] = useState(false);
@@ -61,7 +60,6 @@ export default function Signup() {
         await supabase.from("agency_profiles").insert({
           user_id: userId,
           agency_name: agencyName,
-          cqc_provider_id: cqcProviderId,
           cqc_location_id: cqcLocationId,
           service_radius_miles: serviceRadius,
         });
@@ -158,15 +156,9 @@ export default function Signup() {
                       <Label htmlFor="agencyName">Agency Name</Label>
                       <Input id="agencyName" value={agencyName} onChange={(e) => setAgencyName(e.target.value)} required />
                     </div>
-                    <div className="grid gap-4 sm:grid-cols-2">
-                      <div className="space-y-2">
-                        <Label htmlFor="cqcProvider">CQC Location ID</Label>
-                        <Input id="cqcProvider" value={cqcProviderId} onChange={(e) => setCqcProviderId(e.target.value)} placeholder="1-XXXXXXXXX" />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="cqcLocation">CQC Location ID</Label>
-                        <Input id="cqcLocation" value={cqcLocationId} onChange={(e) => setCqcLocationId(e.target.value)} />
-                      </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="cqcLocation">CQC Location ID</Label>
+                      <Input id="cqcLocation" value={cqcLocationId} onChange={(e) => setCqcLocationId(e.target.value)} placeholder="1-XXXXXXXXX" />
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="radius">Service Radius (miles): {serviceRadius}</Label>
