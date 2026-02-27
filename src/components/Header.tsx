@@ -108,7 +108,7 @@ export function Header() {
           <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary">
             <span className="text-lg font-bold text-primary-foreground">C</span>
           </div>
-          <span className="font-serif text-xl text-foreground">CareMatch</span>
+          <span className="font-serif text-xl text-foreground">Care Fayre</span>
         </Link>
 
         {/* Desktop Nav */}
