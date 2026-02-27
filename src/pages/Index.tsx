@@ -61,6 +61,18 @@ export default function Index() {
               Tell us what care you need. Local CQC-rated agencies bid for your
               business. You choose the best fit — no obligation, no hidden fees.
             </motion.p>
+            <motion.div
+              variants={fadeUp}
+              custom={2}
+              className="mt-8 flex flex-col items-center gap-3 sm:flex-row sm:justify-center"
+            >
+              <Button size="default" variant="hero" asChild className="text-sm px-6 h-10">
+                <Link to="/for-families">Find care near me <ArrowRight className="ml-1 h-3.5 w-3.5" /></Link>
+              </Button>
+              <Button size="default" variant="hero-outline" asChild className="text-sm px-6 h-10">
+                <Link to="/for-agencies">I'm a care agency</Link>
+              </Button>
+            </motion.div>
           </motion.div>
         </div>
       </section>
