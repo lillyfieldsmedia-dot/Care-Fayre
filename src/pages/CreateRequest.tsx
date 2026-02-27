@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Header } from "@/components/Header";
 import { supabase } from "@/integrations/supabase/client";
+import { sendEmail } from "@/lib/sendEmail";
 import { toast } from "sonner";
 import { ArrowLeft, ArrowRight, Check, Moon } from "lucide-react";
 
@@ -88,6 +89,26 @@ export default function CreateRequest() {
       } as any);
 
       if (error) throw error;
+
+      // Notify nearby agencies via email
+      const { data: agencies } = await supabase
+        .from("agency_profiles")
+        .select("user_id")
+        .not("bio", "is", null);
+
+      if (agencies && agencies.length > 0) {
+        const careTypesStr = careTypes.join(", ");
+        for (const agency of agencies) {
+          sendEmail({
+            userId: agency.user_id,
+            subject: "A new care request has been posted in your area",
+            bodyText: `A new care request for ${careTypesStr} (${hoursPerWeek} hrs/week) has been posted in the ${postcode} area. Log in to view the details and place a bid.`,
+            ctaUrl: `${window.location.origin}/agency-dashboard`,
+            ctaText: "View Requests",
+          });
+        }
+      }
+
       toast.success("Care request posted! Agencies will start bidding soon.");
       navigate("/dashboard");
     } catch (err: any) {

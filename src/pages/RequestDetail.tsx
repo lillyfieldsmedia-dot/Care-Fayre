@@ -4,6 +4,7 @@ import { Header } from "@/components/Header";
 import { Button } from "@/components/ui/button";
 import { CQCRatingBadge } from "@/components/CQCRatingBadge";
 import { supabase } from "@/integrations/supabase/client";
+import { sendEmail } from "@/lib/sendEmail";
 import { toast } from "sonner";
 import { MapPin, Clock, Users, AlertCircle, Moon } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -132,6 +133,15 @@ This agreement confirms that:
         related_job_id: jobData.id,
       });
 
+      // Email: bid accepted
+      sendEmail({
+        userId: bid.bidder_id,
+        subject: "Your bid has been accepted — a new job is confirmed",
+        bodyText: "Great news! A customer has accepted your bid. Please log in to review and sign the Rate Agreement to proceed.",
+        ctaUrl: `${window.location.origin}/agreement/${jobData.id}`,
+        ctaText: "Review & Sign Agreement",
+      });
+
       toast.success("Bid accepted! Please review and sign the Rate Agreement.");
       navigate(`/agreement/${jobData.id}`);
     } catch (err: any) {
@@ -179,6 +189,15 @@ This agreement confirms that:
         type: "new_bid",
         message: `${agencyName} placed a bid of £${rate.toFixed(2)}/hr on your ${careType} request`,
         related_request_id: id,
+      });
+
+      // Email: new bid received
+      sendEmail({
+        userId: request.creator_id,
+        subject: "A new bid has arrived for your care request",
+        bodyText: `${agencyName} has placed a bid of £${rate.toFixed(2)}/hr on your ${careType} care request. Log in to review the bid and compare options.`,
+        ctaUrl: `${window.location.origin}/request/${id}`,
+        ctaText: "View Bids",
       });
 
       const newLowest = request.lowest_bid_rate ? Math.min(Number(request.lowest_bid_rate), rate) : rate;
