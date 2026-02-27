@@ -364,6 +364,7 @@ export default function JobDetailPage() {
   const displayStatus = statusLabels[job.status] || job.status;
 
   return (
+    <>
     <div className="min-h-screen bg-background">
       <Header />
       <div className="container max-w-4xl py-8">
@@ -870,5 +871,6 @@ export default function JobDetailPage() {
         </DialogContent>
       </Dialog>
     </div>
+    </>
   );
 }
