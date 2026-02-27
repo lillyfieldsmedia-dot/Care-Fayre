@@ -45,7 +45,7 @@ export default function Login() {
         <div className="w-full max-w-md">
           <div className="text-center">
             <h1 className="font-serif text-3xl text-foreground">Welcome Back</h1>
-            <p className="mt-2 text-muted-foreground">Sign in to your CareMatch account</p>
+            <p className="mt-2 text-muted-foreground">Sign in to your Care Fayre account</p>
           </div>
 
           <form onSubmit={handleSubmit} className="mt-8 space-y-4 rounded-xl border border-border bg-card p-6">

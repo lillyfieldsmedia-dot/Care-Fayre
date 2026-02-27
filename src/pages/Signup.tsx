@@ -82,8 +82,8 @@ export default function Signup() {
           {step === 1 ? (
             <div className="space-y-6">
               <div className="text-center">
-                <h1 className="font-serif text-3xl text-foreground">Join CareMatch</h1>
-                <p className="mt-2 text-muted-foreground">How would you like to use CareMatch?</p>
+                <h1 className="font-serif text-3xl text-foreground">Join Care Fayre</h1>
+                <p className="mt-2 text-muted-foreground">How would you like to use Care Fayre?</p>
               </div>
               <div className="grid gap-4 sm:grid-cols-2">
                 {([

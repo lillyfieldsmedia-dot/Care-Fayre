@@ -26,7 +26,7 @@ const features = [
   {
     icon: CircleDollarSign,
     title: "No sign-up cost",
-    desc: "Joining CareMatch is completely free. No subscription, no upfront fees. Create your profile and start receiving leads immediately.",
+    desc: "Joining Care Fayre is completely free. No subscription, no upfront fees. Create your profile and start receiving leads immediately.",
   },
   {
     icon: TrendingUp,
@@ -94,7 +94,7 @@ export default function ForAgencies() {
               custom={1}
               className="mx-auto mt-6 max-w-2xl text-lg md:text-xl text-muted-foreground leading-relaxed"
             >
-              CareMatch connects you with families in your area who need care
+              Care Fayre connects you with families in your area who need care
               right now. No marketing spend, no chasing invoices — just more
               clients and less admin.
             </motion.p>
@@ -119,7 +119,7 @@ export default function ForAgencies() {
             viewport={{ once: true }}
             className="text-center font-serif text-3xl text-foreground md:text-4xl"
           >
-            Why agencies choose CareMatch
+            Why agencies choose Care Fayre
           </motion.h2>
           <div className="mt-14 grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
             {features.map((f, i) => (
@@ -154,7 +154,7 @@ export default function ForAgencies() {
             Ready to grow your agency?
           </h2>
           <p className="mx-auto mt-4 max-w-md text-primary-foreground/80">
-            Join CareMatch today — it's completely free. Start receiving care
+            Join Care Fayre today — it's completely free. Start receiving care
             requests in your area within hours.
           </p>
           <div className="mt-8">
@@ -175,14 +175,14 @@ export default function ForAgencies() {
               <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
                 <span className="text-sm font-bold text-primary-foreground">C</span>
               </div>
-              <span className="font-serif text-lg text-foreground">CareMatch</span>
+              <span className="font-serif text-lg text-foreground">Care Fayre</span>
             </div>
             <div className="flex gap-6 text-sm text-muted-foreground">
               <a href="#" className="hover:text-foreground transition-colors">Privacy Policy</a>
               <a href="#" className="hover:text-foreground transition-colors">Terms of Service</a>
               <a href="#" className="hover:text-foreground transition-colors">Contact</a>
             </div>
-            <p className="text-sm text-muted-foreground">© 2026 CareMatch UK. All rights reserved.</p>
+            <p className="text-sm text-muted-foreground">© 2026 Care Fayre UK. All rights reserved.</p>
           </div>
         </div>
       </footer>

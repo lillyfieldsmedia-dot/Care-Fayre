@@ -42,9 +42,9 @@ type JobData = {
 const AGREEMENT_TERMS = [
   "Both parties have agreed to the hourly rate above, which is fixed and cannot be changed for the duration of this care arrangement.",
   "The Agency will contact the Customer to arrange an initial care assessment.",
-  "Following the assessment, both parties must confirm on CareMatch that they wish to proceed before care begins.",
+  "Following the assessment, both parties must confirm on Care Fayre that they wish to proceed before care begins.",
   "Either party may withdraw following the assessment with no penalty and no charges.",
-  "Once care begins, the Agency will submit weekly timesheets via CareMatch. Payment will be collected by CareMatch and disbursed to the Agency minus a platform fee.",
+  "Once care begins, the Agency will submit weekly timesheets via Care Fayre. Payment will be collected by Care Fayre and disbursed to the Agency minus a platform fee.",
   "This agreement does not constitute a contract of care. A separate care contract may be provided by the Agency at the assessment stage.",
 ];
 
@@ -193,7 +193,7 @@ export default function CareAgreement() {
           <div className="mt-6 space-y-6">
             {/* Preamble */}
             <p className="text-sm text-foreground leading-relaxed">
-              This Rate Agreement is between <span className="font-medium">{holderProfile?.full_name || "—"}</span> ("the Customer") and <span className="font-medium">{job.agency_profiles?.agency_name || "—"}</span> ("the Agency"), facilitated by CareMatch.
+              This Rate Agreement is between <span className="font-medium">{holderProfile?.full_name || "—"}</span> ("the Customer") and <span className="font-medium">{job.agency_profiles?.agency_name || "—"}</span> ("the Agency"), facilitated by Care Fayre.
             </p>
 
             {/* Key Details */}

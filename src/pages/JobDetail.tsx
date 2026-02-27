@@ -190,7 +190,7 @@ export default function JobDetailPage() {
     await supabase.from("notifications").insert({
       recipient_id: job.customer_id,
       type: "assessment_complete",
-      message: `Your assessment with ${agencyName} has taken place. Please confirm on CareMatch whether you wish to proceed with care.`,
+      message: `Your assessment with ${agencyName} has taken place. Please confirm on Care Fayre whether you wish to proceed with care.`,
       related_job_id: job.id,
     });
     // Start date notification

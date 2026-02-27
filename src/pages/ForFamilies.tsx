@@ -25,7 +25,7 @@ const features = [
   {
     icon: Search,
     title: "Find trusted, local care",
-    desc: "Browse CQC-rated agencies near you and compare them side by side. Every agency on CareMatch has been verified by our team.",
+    desc: "Browse CQC-rated agencies near you and compare them side by side. Every agency on Care Fayre has been verified by our team.",
   },
   {
     icon: BarChart3,
@@ -45,12 +45,12 @@ const features = [
   {
     icon: Lock,
     title: "Secure, automatic payments",
-    desc: "No cash in hand. Payments are handled safely through CareMatch, with full transparency on every transaction.",
+    desc: "No cash in hand. Payments are handled safely through Care Fayre, with full transparency on every transaction.",
   },
   {
     icon: BadgeCheck,
     title: "All agencies verified",
-    desc: "Every agency on CareMatch is CQC registered and verified by our team. Your loved ones are in safe hands.",
+    desc: "Every agency on Care Fayre is CQC registered and verified by our team. Your loved ones are in safe hands.",
   },
 ];
 
@@ -88,7 +88,7 @@ export default function ForFamilies() {
               custom={1}
               className="mx-auto mt-6 max-w-2xl text-lg md:text-xl text-muted-foreground leading-relaxed"
             >
-              CareMatch puts you in control. Post your care needs, receive
+              Care Fayre puts you in control. Post your care needs, receive
               competitive bids from CQC-rated agencies, and choose the best fit
               for your family — with no obligation.
             </motion.p>
@@ -113,7 +113,7 @@ export default function ForFamilies() {
             viewport={{ once: true }}
             className="text-center font-serif text-3xl text-foreground md:text-4xl"
           >
-            Why families choose CareMatch
+            Why families choose Care Fayre
           </motion.h2>
           <div className="mt-14 grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
             {features.map((f, i) => (
@@ -149,7 +149,7 @@ export default function ForFamilies() {
           </h2>
           <p className="mx-auto mt-4 max-w-md text-primary-foreground/80">
             Join hundreds of families who've found quality, affordable home care
-            through CareMatch.
+            through Care Fayre.
           </p>
           <div className="mt-8">
             <Button size="lg" variant="secondary" asChild>
@@ -169,14 +169,14 @@ export default function ForFamilies() {
               <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
                 <span className="text-sm font-bold text-primary-foreground">C</span>
               </div>
-              <span className="font-serif text-lg text-foreground">CareMatch</span>
+              <span className="font-serif text-lg text-foreground">Care Fayre</span>
             </div>
             <div className="flex gap-6 text-sm text-muted-foreground">
               <a href="#" className="hover:text-foreground transition-colors">Privacy Policy</a>
               <a href="#" className="hover:text-foreground transition-colors">Terms of Service</a>
               <a href="#" className="hover:text-foreground transition-colors">Contact</a>
             </div>
-            <p className="text-sm text-muted-foreground">© 2026 CareMatch UK. All rights reserved.</p>
+            <p className="text-sm text-muted-foreground">© 2026 Care Fayre UK. All rights reserved.</p>
           </div>
         </div>
       </footer>

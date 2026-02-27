@@ -95,9 +95,9 @@ export default function RequestDetail() {
       const careTypesStr = (request.care_types || []).join(", ");
       const startDateStr = request.start_date ? new Date(request.start_date).toLocaleDateString() : "To Be Confirmed";
 
-      const agreementText = `CAREMATCH RATE AGREEMENT
+      const agreementText = `CARE FAYRE RATE AGREEMENT
 
-This Rate Agreement is between ${holderProfile?.full_name || "—"} ("the Customer") and ${agencyProfile?.agency_name || "—"} ("the Agency"), facilitated by CareMatch.
+This Rate Agreement is between ${holderProfile?.full_name || "—"} ("the Customer") and ${agencyProfile?.agency_name || "—"} ("the Agency"), facilitated by Care Fayre.
 
 Agreed hourly rate: £${Number(bid.hourly_rate).toFixed(2)}/hr
 Care type: ${careTypesStr}
@@ -110,11 +110,11 @@ This agreement confirms that:
 
 2. The Agency will contact the Customer to arrange an initial care assessment.
 
-3. Following the assessment, both parties must confirm on CareMatch that they wish to proceed before care begins.
+3. Following the assessment, both parties must confirm on Care Fayre that they wish to proceed before care begins.
 
 4. Either party may withdraw following the assessment with no penalty and no charges.
 
-5. Once care begins, the Agency will submit weekly timesheets via CareMatch. Payment will be collected by CareMatch and disbursed to the Agency minus a platform fee.
+5. Once care begins, the Agency will submit weekly timesheets via Care Fayre. Payment will be collected by Care Fayre and disbursed to the Agency minus a platform fee.
 
 6. This agreement does not constitute a contract of care. A separate care contract may be provided by the Agency at the assessment stage.`;
 

@@ -86,7 +86,7 @@ export default function Index() {
             viewport={{ once: true }}
             className="text-center font-serif text-3xl text-foreground md:text-4xl"
           >
-            How CareMatch works
+            How Care Fayre works
           </motion.h2>
           <p className="mx-auto mt-4 max-w-xl text-center text-muted-foreground">
             A simple process designed for both families and care agencies.
@@ -132,7 +132,7 @@ export default function Index() {
             Who are you?
           </motion.h2>
           <p className="mx-auto mt-4 max-w-lg text-center text-muted-foreground">
-            CareMatch connects families with trusted care agencies. Choose your
+            Care Fayre connects families with trusted care agencies. Choose your
             path to learn more.
           </p>
 
@@ -204,14 +204,14 @@ export default function Index() {
               <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
                 <span className="text-sm font-bold text-primary-foreground">C</span>
               </div>
-              <span className="font-serif text-lg text-foreground">CareMatch</span>
+              <span className="font-serif text-lg text-foreground">Care Fayre</span>
             </div>
             <div className="flex gap-6 text-sm text-muted-foreground">
               <a href="#" className="hover:text-foreground transition-colors">Privacy Policy</a>
               <a href="#" className="hover:text-foreground transition-colors">Terms of Service</a>
               <a href="#" className="hover:text-foreground transition-colors">Contact</a>
             </div>
-            <p className="text-sm text-muted-foreground">© 2026 CareMatch UK. All rights reserved.</p>
+            <p className="text-sm text-muted-foreground">© 2026 Care Fayre UK. All rights reserved.</p>
           </div>
         </div>
       </footer>
