@@ -1,0 +1,158 @@
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
+};
+
+function buildEmailHtml(subject: string, bodyText: string, ctaUrl?: string, ctaText?: string): string {
+  const ctaButton = ctaUrl && ctaText
+    ? `<table role="presentation" cellpadding="0" cellspacing="0" style="margin:24px 0;">
+        <tr>
+          <td style="background-color:#1e3a5f;border-radius:6px;">
+            <a href="${ctaUrl}" target="_blank" style="display:inline-block;padding:12px 28px;color:#ffffff;font-family:Arial,sans-serif;font-size:15px;font-weight:600;text-decoration:none;">
+              ${ctaText}
+            </a>
+          </td>
+        </tr>
+      </table>`
+    : "";
+
+  return `<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"></head>
+<body style="margin:0;padding:0;background-color:#f4f4f5;font-family:Arial,sans-serif;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#f4f4f5;padding:32px 16px;">
+    <tr>
+      <td align="center">
+        <table role="presentation" width="560" cellpadding="0" cellspacing="0" style="background-color:#ffffff;border-radius:8px;overflow:hidden;">
+          <!-- Header -->
+          <tr>
+            <td style="padding:28px 32px 20px 32px;border-bottom:1px solid #e4e4e7;">
+              <span style="font-family:Georgia,serif;font-size:22px;font-weight:700;color:#1e3a5f;letter-spacing:0.5px;">Care Fayre</span>
+            </td>
+          </tr>
+          <!-- Body -->
+          <tr>
+            <td style="padding:28px 32px 12px 32px;">
+              <h1 style="margin:0 0 16px 0;font-family:Georgia,serif;font-size:20px;font-weight:600;color:#18181b;">${subject}</h1>
+              <p style="margin:0 0 8px 0;font-size:15px;line-height:1.6;color:#3f3f46;">${bodyText}</p>
+              ${ctaButton}
+            </td>
+          </tr>
+          <!-- Footer -->
+          <tr>
+            <td style="padding:20px 32px 28px 32px;border-top:1px solid #e4e4e7;">
+              <p style="margin:0;font-size:12px;color:#a1a1aa;">© 2026 Care Fayre UK. All rights reserved.</p>
+              <p style="margin:4px 0 0 0;font-size:12px;color:#a1a1aa;">This is an automated notification from Care Fayre.</p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`;
+}
+
+Deno.serve(async (req) => {
+  if (req.method === "OPTIONS") {
+    return new Response(null, { headers: corsHeaders });
+  }
+
+  try {
+    // Verify caller is authenticated
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader?.startsWith("Bearer ")) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
+    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+
+    const anonClient = createClient(supabaseUrl, supabaseAnonKey, {
+      global: { headers: { Authorization: authHeader } },
+    });
+
+    const token = authHeader.replace("Bearer ", "");
+    const { data: claimsData, error: claimsError } = await anonClient.auth.getClaims(token);
+    if (claimsError || !claimsData?.claims) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const { userId, subject, bodyText, ctaUrl, ctaText } = await req.json();
+
+    if (!userId || !subject || !bodyText) {
+      return new Response(JSON.stringify({ error: "Missing required fields: userId, subject, bodyText" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Look up recipient email using service role
+    const adminClient = createClient(supabaseUrl, supabaseServiceKey);
+    const { data: userData, error: userError } = await adminClient.auth.admin.getUserById(userId);
+
+    if (userError || !userData?.user?.email) {
+      console.error("Could not find user email:", userError?.message);
+      return new Response(JSON.stringify({ error: "Recipient email not found" }), {
+        status: 404,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const recipientEmail = userData.user.email;
+    const html = buildEmailHtml(subject, bodyText, ctaUrl, ctaText);
+
+    // Send via Resend
+    const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
+    if (!RESEND_API_KEY) {
+      return new Response(JSON.stringify({ error: "RESEND_API_KEY not configured" }), {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const resendRes = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${RESEND_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        from: "Care Fayre <noreply@carefayre.co.uk>",
+        to: [recipientEmail],
+        subject,
+        html,
+      }),
+    });
+
+    const resendBody = await resendRes.text();
+    console.log(`Resend status: ${resendRes.status}, body: ${resendBody}`);
+
+    if (!resendRes.ok) {
+      return new Response(JSON.stringify({ error: "Failed to send email", details: resendBody }), {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    return new Response(JSON.stringify({ success: true }), {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  } catch (e) {
+    console.error("send-email error:", e);
+    return new Response(JSON.stringify({ error: "Internal error" }), {
+      status: 500,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+});

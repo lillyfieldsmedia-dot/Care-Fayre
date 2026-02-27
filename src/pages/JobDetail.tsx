@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
 import { Header } from "@/components/Header";
 import { supabase } from "@/integrations/supabase/client";
+import { sendEmail } from "@/lib/sendEmail";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { CQCRatingBadge } from "@/components/CQCRatingBadge";
@@ -193,6 +194,15 @@ export default function JobDetailPage() {
       message: `Your assessment with ${agencyName} has taken place. Please confirm on Care Fayre whether you wish to proceed with care.`,
       related_job_id: job.id,
     });
+
+    // Email: assessment marked complete
+    sendEmail({
+      userId: job.customer_id,
+      subject: `Your assessment with ${agencyName} has taken place`,
+      bodyText: `Your assessment with ${agencyName} has taken place. Please log in to confirm whether you wish to proceed with care.`,
+      ctaUrl: `${window.location.origin}/job/${job.id}`,
+      ctaText: "Confirm or Decline",
+    });
     // Start date notification
     if (startDateValue) {
       await supabase.from("notifications").insert({
@@ -265,6 +275,15 @@ export default function JobDetailPage() {
       message: `${customerName} has confirmed they wish to proceed. Care is now active — you can begin submitting timesheets.`,
       related_job_id: job.id,
     });
+
+    // Email: customer confirmed care
+    sendEmail({
+      userId: job.agency_id,
+      subject: "The customer has confirmed they wish to proceed with care",
+      bodyText: `${customerName} has confirmed they wish to proceed following the assessment. Care is now active and you can begin submitting timesheets.`,
+      ctaUrl: `${window.location.origin}/job/${job.id}`,
+      ctaText: "View Job",
+    });
     toast.success("Care is now active!");
     setConfirmingCare(false);
     loadData();
@@ -324,6 +343,27 @@ export default function JobDetailPage() {
         related_job_id: job.id,
       }),
     ]);
+
+    // Email: cancellation notification to the OTHER party
+    if (isCustomerAction) {
+      // Customer cancelled → email the agency
+      sendEmail({
+        userId: job.agency_id,
+        subject: "A care arrangement has been cancelled by the customer",
+        bodyText: `${customerName} has cancelled the care arrangement before care began. No charges apply.`,
+        ctaUrl: `${window.location.origin}/job/${job.id}`,
+        ctaText: "View Details",
+      });
+    } else {
+      // Agency cancelled → email the customer
+      sendEmail({
+        userId: job.customer_id,
+        subject: `Your care arrangement with ${agencyName} has been cancelled`,
+        bodyText: `${agencyName} has cancelled the care arrangement before care began. No charges apply.`,
+        ctaUrl: `${window.location.origin}/job/${job.id}`,
+        ctaText: "View Details",
+      });
+    }
 
     toast.success("Arrangement cancelled. No charges apply.");
     setCancelling(false);
