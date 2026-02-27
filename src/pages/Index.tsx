@@ -147,7 +147,7 @@ export default function Index() {
             >
               <Link
                 to="/for-families"
-                className="group block rounded-2xl border border-border bg-card p-10 text-center shadow-[var(--card-shadow)] transition-all duration-300 hover:shadow-[var(--card-shadow-lg)] hover:-translate-y-1"
+                className="group block rounded-2xl border border-border bg-card p-10 text-center shadow-[var(--card-shadow)] transition-all duration-300 hover:shadow-[var(--card-shadow-lg)] hover:-translate-y-1 hover:bg-primary/[0.03]"
               >
                 <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-primary/10 transition-colors group-hover:bg-primary/20">
                   <Users className="h-8 w-8 text-primary" />
@@ -159,8 +159,8 @@ export default function Index() {
                   Find trusted, CQC-rated agencies near you. Compare prices,
                   ratings and reviews — and only pay when you're happy.
                 </p>
-                <span className="mt-6 inline-flex items-center gap-1 text-sm font-semibold text-primary group-hover:gap-2 transition-all">
-                  Learn more <ArrowRight className="h-4 w-4" />
+                <span className="mt-6 inline-flex items-center gap-1.5 text-base font-bold text-primary underline-offset-4 group-hover:underline transition-all">
+                  Find care near me <ArrowRight className="h-4.5 w-4.5 transition-transform group-hover:translate-x-1" />
                 </span>
               </Link>
             </motion.div>
@@ -175,7 +175,7 @@ export default function Index() {
             >
               <Link
                 to="/for-agencies"
-                className="group block rounded-2xl border border-border bg-card p-10 text-center shadow-[var(--card-shadow)] transition-all duration-300 hover:shadow-[var(--card-shadow-lg)] hover:-translate-y-1"
+                className="group block rounded-2xl border border-border bg-card p-10 text-center shadow-[var(--card-shadow)] transition-all duration-300 hover:shadow-[var(--card-shadow-lg)] hover:-translate-y-1 hover:bg-accent/[0.03]"
               >
                 <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-accent/10 transition-colors group-hover:bg-accent/20">
                   <Shield className="h-8 w-8 text-accent" />
@@ -187,8 +187,8 @@ export default function Index() {
                   Grow your client base with zero upfront cost. Receive local
                   care requests and bid on your own terms.
                 </p>
-                <span className="mt-6 inline-flex items-center gap-1 text-sm font-semibold text-accent group-hover:gap-2 transition-all">
-                  Learn more <ArrowRight className="h-4 w-4" />
+                <span className="mt-6 inline-flex items-center gap-1.5 text-base font-bold text-primary underline-offset-4 group-hover:underline transition-all">
+                  Start receiving leads <ArrowRight className="h-4.5 w-4.5 transition-transform group-hover:translate-x-1" />
                 </span>
               </Link>
             </motion.div>
