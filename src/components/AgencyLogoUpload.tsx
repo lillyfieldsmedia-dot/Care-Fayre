@@ -86,9 +86,9 @@ export function AgencyLogoUpload({ profileId, currentLogoUrl, onUploaded }: Agen
   return (
     <div className="flex items-center gap-4">
       {currentLogoUrl ? (
-        <img src={currentLogoUrl} alt="Agency logo" className="h-16 w-16 rounded-lg object-cover" />
+        <img src={currentLogoUrl} alt="Agency logo" className="h-[50px] w-[160px] rounded object-contain" />
       ) : (
-        <div className="flex h-16 w-16 items-center justify-center rounded-lg border border-dashed border-border bg-muted">
+        <div className="flex h-[50px] w-[160px] items-center justify-center rounded border border-dashed border-border bg-muted">
           <Building2 className="h-6 w-6 text-muted-foreground" />
         </div>
       )}

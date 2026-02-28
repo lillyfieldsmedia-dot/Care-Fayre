@@ -552,10 +552,17 @@ export default function JobDetailPage() {
 
           {/* Agency Info */}
           <div className="mt-4 flex items-center gap-3 rounded-lg border border-border p-3">
-            <AgencyLogo logoUrl={job.agency_profiles?.logo_url} agencyName={job.agency_profiles?.agency_name || "Agency"} size="md" />
-            {!job.agency_profiles?.logo_url && <Briefcase className="h-5 w-5 text-primary" />}
+            {job.agency_profiles?.logo_url ? (
+              <Link to={`/agency/${job.agency_profiles?.id}`}>
+                <AgencyLogo logoUrl={job.agency_profiles.logo_url} agencyName={job.agency_profiles.agency_name || "Agency"} size="md" />
+              </Link>
+            ) : (
+              <Briefcase className="h-5 w-5 text-primary" />
+            )}
             <div>
-              <Link to={`/agency/${job.agency_profiles?.id}`} className="font-medium text-primary hover:underline">{job.agency_profiles?.agency_name}</Link>
+              {!job.agency_profiles?.logo_url && (
+                <Link to={`/agency/${job.agency_profiles?.id}`} className="font-medium text-primary hover:underline">{job.agency_profiles?.agency_name}</Link>
+              )}
               <div className="flex items-center gap-2">
                 {job.agency_profiles?.cqc_rating && (
                   <CQCRatingBadge rating={job.agency_profiles.cqc_rating as any} />

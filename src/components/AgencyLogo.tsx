@@ -1,9 +1,9 @@
 import { cn } from "@/lib/utils";
 
 const sizeMap = {
-  sm: "h-8 w-8",
-  md: "h-12 w-12",
-  lg: "h-20 w-20",
+  sm: "h-8 w-24",
+  md: "h-10 w-32",
+  lg: "h-14 w-44",
 };
 
 interface AgencyLogoProps {
@@ -20,7 +20,7 @@ export function AgencyLogo({ logoUrl, agencyName, size, className }: AgencyLogoP
     <img
       src={logoUrl}
       alt={`${agencyName} logo`}
-      className={cn(sizeMap[size], "rounded-lg object-cover shrink-0", className)}
+      className={cn(sizeMap[size], "rounded object-contain shrink-0", className)}
     />
   );
 }
