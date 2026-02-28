@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { MapPin, Clock, Briefcase, TrendingUp, AlertCircle, Bell } from "lucide-react";
 import { NotificationsTab } from "@/components/NotificationsTab";
 import { ActiveCareSection } from "@/components/ActiveCareSection";
+import { AgencyTimesheetsTab } from "@/components/AgencyTimesheetsTab";
 import { Badge } from "@/components/ui/badge";
 import { EditAgencyProfileDialog } from "@/components/EditAgencyProfileDialog";
 import { Button } from "@/components/ui/button";
@@ -35,7 +36,7 @@ type AgencyJob = {
 };
 
 export default function AgencyDashboard() {
-  const [tab, setTab] = useState<"available" | "bids" | "jobs" | "notifications">("available");
+  const [tab, setTab] = useState<"available" | "bids" | "jobs" | "timesheets" | "notifications">("available");
   const [requests, setRequests] = useState<CareRequest[]>([]);
   const [jobs, setJobs] = useState<AgencyJob[]>([]);
   const [agencyProfile, setAgencyProfile] = useState<{ id: string; phone: string; website: string; bio: string; cqc_explanation: string } | null>(null);
@@ -65,6 +66,7 @@ export default function AgencyDashboard() {
     { key: "available" as const, label: "Available Requests", icon: MapPin },
     { key: "bids" as const, label: "My Bids", icon: TrendingUp },
     { key: "jobs" as const, label: "My Clients", icon: Briefcase },
+    { key: "timesheets" as const, label: "Timesheets", icon: Clock },
     { key: "notifications" as const, label: "Notifications", icon: Bell },
   ];
 
@@ -195,6 +197,8 @@ export default function AgencyDashboard() {
           ) : (
             tab === "notifications" ? (
               <NotificationsTab />
+            ) : tab === "timesheets" ? (
+              <AgencyTimesheetsTab />
             ) : tab === "jobs" ? (
               jobs.length === 0 ? (
                 <div className="rounded-xl border border-dashed border-border bg-card py-16 text-center">
