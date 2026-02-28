@@ -254,7 +254,7 @@ export default function AgencyProfile() {
           )}
 
           {/* Live CQC Data */}
-          <CQCLiveInfo locationId={profile.cqc_location_id} providerId={profile.cqc_provider_id} />
+          <CQCLiveInfo locationId={profile.cqc_location_id} providerId={profile.cqc_provider_id} agencyProfileId={profile.id} />
         </div>
 
         {/* Reviews Section */}
