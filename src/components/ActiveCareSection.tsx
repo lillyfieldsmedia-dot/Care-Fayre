@@ -17,6 +17,7 @@ type ActiveJob = {
   care_requests: {
     postcode: string;
     care_types: string[];
+    recipient_name: string | null;
   } | null;
   agency_profiles: {
     agency_name: string;
@@ -60,7 +61,7 @@ export function ActiveCareSection({ variant }: Props) {
     const col = variant === "customer" ? "customer_id" : "agency_id";
     const { data } = await supabase
       .from("jobs")
-      .select("id, locked_hourly_rate, agreed_hours_per_week, status, start_date, care_requests(postcode, care_types), agency_profiles(agency_name, cqc_rating)")
+      .select("id, locked_hourly_rate, agreed_hours_per_week, status, start_date, care_requests(postcode, care_types, recipient_name), agency_profiles(agency_name, cqc_rating)")
       .eq(col, user.id)
       .in("status", ACTIVE_STATUSES)
       .order("created_at", { ascending: false });
@@ -159,9 +160,16 @@ export function ActiveCareSection({ variant }: Props) {
                       <CQCRatingBadge rating={job.agency_profiles?.cqc_rating || null} />
                     </div>
                   ) : (
-                    <div className="flex items-center gap-2">
-                      <MapPin className="h-3.5 w-3.5 text-primary" />
-                      <span className="font-medium text-foreground">{job.care_requests?.postcode}</span>
+                    <div className="flex flex-col">
+                      <span className="font-medium text-foreground">
+                        {job.care_requests?.recipient_name || job.care_requests?.postcode}
+                      </span>
+                      {job.care_requests?.recipient_name && (
+                        <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                          <MapPin className="h-3 w-3" />
+                          {job.care_requests.postcode}
+                        </span>
+                      )}
                     </div>
                   )}
                 </div>
