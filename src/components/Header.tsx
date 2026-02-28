@@ -160,7 +160,7 @@ export function Header() {
                   <Button variant="ghost" size="icon"><User className="h-4 w-4" /></Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="bg-popover z-[100]">
-                  <DropdownMenuItem asChild><Link to="/profile">Profile</Link></DropdownMenuItem>
+                  <DropdownMenuItem asChild><Link to={role === "agency" ? "/agency-profile" : "/profile"}>Profile</Link></DropdownMenuItem>
                   <DropdownMenuItem onClick={handleLogout}><LogOut className="mr-2 h-4 w-4" /> Log out</DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -186,7 +186,7 @@ export function Header() {
             <div className="flex flex-col gap-2">
               <Button variant="ghost" asChild className="justify-start"><Link to={dashboardLink}>Dashboard</Link></Button>
               {role === "customer" && <Button variant="ghost" asChild className="justify-start"><Link to="/create-request">Post Request</Link></Button>}
-              <Button variant="ghost" asChild className="justify-start"><Link to="/profile">Profile</Link></Button>
+              <Button variant="ghost" asChild className="justify-start"><Link to={role === "agency" ? "/agency-profile" : "/profile"}>Profile</Link></Button>
               <Button variant="ghost" className="justify-start" onClick={handleLogout}><LogOut className="mr-2 h-4 w-4" /> Log out</Button>
             </div>
           ) : (

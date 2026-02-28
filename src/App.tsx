@@ -15,6 +15,7 @@ import Profile from "./pages/Profile";
 import JobDetail from "./pages/JobDetail";
 import AdminDashboard from "./pages/AdminDashboard";
 import AgencyProfile from "./pages/AgencyProfile";
+import AgencyProfileEdit from "./pages/AgencyProfileEdit";
 import CareAgreement from "./pages/CareAgreement";
 import ForFamilies from "./pages/ForFamilies";
 import ForAgencies from "./pages/ForAgencies";
@@ -40,6 +41,7 @@ const App = () => (
           <Route path="/profile" element={<Profile />} />
           <Route path="/job/:id" element={<JobDetail />} />
           <Route path="/agency/:id" element={<AgencyProfile />} />
+          <Route path="/agency-profile" element={<AgencyProfileEdit />} />
           <Route path="/agreement/:jobId" element={<CareAgreement />} />
           <Route path="/admin" element={<AdminDashboard />} />
           <Route path="*" element={<NotFound />} />
