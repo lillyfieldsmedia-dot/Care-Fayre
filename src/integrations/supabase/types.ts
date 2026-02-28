@@ -30,6 +30,7 @@ export type Database = {
           id: string
           insurance_confirmed: boolean
           latitude: number | null
+          logo_url: string | null
           longitude: number | null
           office_address: string | null
           phone: string | null
@@ -55,6 +56,7 @@ export type Database = {
           id?: string
           insurance_confirmed?: boolean
           latitude?: number | null
+          logo_url?: string | null
           longitude?: number | null
           office_address?: string | null
           phone?: string | null
@@ -80,6 +82,7 @@ export type Database = {
           id?: string
           insurance_confirmed?: boolean
           latitude?: number | null
+          logo_url?: string | null
           longitude?: number | null
           office_address?: string | null
           phone?: string | null

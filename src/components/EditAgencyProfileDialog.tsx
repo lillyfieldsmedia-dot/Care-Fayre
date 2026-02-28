@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/dialog";
 import { Pencil } from "lucide-react";
 import { toast } from "sonner";
+import { AgencyLogoUpload } from "@/components/AgencyLogoUpload";
 
 const CARE_TYPE_OPTIONS = [
   "Personal Care", "Dementia Care", "Overnight Care", "Live-in Care",
@@ -33,6 +34,7 @@ type Props = {
     service_area_postcodes?: string[];
     cqc_location_id?: string;
     cqc_rating?: string | null;
+    logo_url?: string | null;
   };
   onSaved: () => void;
 };
@@ -53,6 +55,7 @@ export function EditAgencyProfileDialog({ profileId, initial, onSaved }: Props) 
   const [serviceRadius, setServiceRadius] = useState(initial.service_radius_miles || 25);
   const [serviceAreaPostcodes, setServiceAreaPostcodes] = useState((initial.service_area_postcodes || []).join(", "));
   const [cqcExplanation, setCqcExplanation] = useState(initial.cqc_explanation);
+  const [logoUrl, setLogoUrl] = useState<string | null>(initial.logo_url || null);
 
   useEffect(() => {
     supabase.from("app_settings").select("max_radius_miles").limit(1).single().then(({ data }) => {
@@ -129,6 +132,7 @@ export function EditAgencyProfileDialog({ profileId, initial, onSaved }: Props) 
             {/* Basic Info */}
             <section className="space-y-3">
               <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Basic Info</h3>
+              <AgencyLogoUpload profileId={profileId} currentLogoUrl={logoUrl} onUploaded={setLogoUrl} />
               <div>
                 <Label htmlFor="agencyName">Agency Name</Label>
                 <Input id="agencyName" value={agencyName} onChange={(e) => setAgencyName(e.target.value)} />
