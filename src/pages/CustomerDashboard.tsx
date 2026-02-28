@@ -5,6 +5,7 @@ import { Header } from "@/components/Header";
 import { supabase } from "@/integrations/supabase/client";
 import { Plus, FileText, Briefcase, Bell, MapPin, Star } from "lucide-react";
 import { NotificationsTab } from "@/components/NotificationsTab";
+import { ActiveCareSection } from "@/components/ActiveCareSection";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
@@ -299,6 +300,8 @@ export default function CustomerDashboard() {
             </div>
           ))}
         </div>
+
+        <ActiveCareSection variant="customer" />
 
         {/* Tabs */}
         <div className="mt-8 flex gap-1 rounded-lg border border-border bg-muted p-1">
