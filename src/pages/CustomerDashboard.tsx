@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Header } from "@/components/Header";
 import { supabase } from "@/integrations/supabase/client";
 import { Plus, FileText, Briefcase, Bell, MapPin, Star } from "lucide-react";
+import { NotificationsTab } from "@/components/NotificationsTab";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
@@ -421,11 +422,7 @@ export default function CustomerDashboard() {
               </div>
             )
           ) : (
-            <div className="rounded-xl border border-dashed border-border bg-card py-16 text-center">
-              <Bell className="mx-auto h-10 w-10 text-muted-foreground/50" />
-              <h3 className="mt-4 font-serif text-lg text-foreground">Notifications</h3>
-              <p className="mt-1 text-sm text-muted-foreground">You'll see notifications about bids and jobs here.</p>
-            </div>
+            <NotificationsTab />
           )}
         </div>
       </div>
