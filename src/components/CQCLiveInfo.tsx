@@ -18,6 +18,7 @@ function formatDate(dateStr: string) {
 interface CQCLiveInfoProps {
   locationId: string | null;
   providerId: string | null;
+  agencyProfileId?: string;
 }
 
 type CQCData = {
@@ -44,7 +45,7 @@ function getNoRatingBadge(data: CQCData): string {
   return "CQC status unavailable";
 }
 
-export function CQCLiveInfo({ locationId, providerId }: CQCLiveInfoProps) {
+export function CQCLiveInfo({ locationId, providerId, agencyProfileId }: CQCLiveInfoProps) {
   const [data, setData] = useState<CQCData | null>(null);
   const [error, setError] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -63,7 +64,11 @@ export function CQCLiveInfo({ locationId, providerId }: CQCLiveInfoProps) {
         if (err || !res || res.error) {
           setError(true);
         } else {
-          setData(res as CQCData);
+          const res_ = res as CQCData;
+          setData(res_);
+          if (res_.overallRating && agencyProfileId) {
+            supabase.from("agency_profiles").update({ cqc_rating: res_.overallRating } as any).eq("id", agencyProfileId);
+          }
         }
         setLoading(false);
       });
