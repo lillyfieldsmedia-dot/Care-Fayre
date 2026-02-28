@@ -25,19 +25,13 @@ type ActiveJob = {
   } | null;
 };
 
-const ACTIVE_STATUSES: JobStatus[] = ["pending", "assessment_pending", "assessment_complete", "active"];
+const ACTIVE_STATUSES: JobStatus[] = ["active"];
 
 const statusBadgeClass: Record<string, string> = {
-  pending: "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300",
-  assessment_pending: "bg-primary/20 text-primary",
-  assessment_complete: "bg-accent/80 text-accent-foreground",
   active: "bg-cqc-good text-primary-foreground",
 };
 
 const statusLabel: Record<string, string> = {
-  pending: "Pending Agreement",
-  assessment_pending: "Assessment Pending",
-  assessment_complete: "Assessment Complete",
   active: "Active",
 };
 
@@ -117,22 +111,7 @@ export function ActiveCareSection({ variant }: Props) {
 
   if (!loaded || jobs.length === 0) return null;
 
-  const customerAlerts: Record<string, string> = {
-    pending: "Rate Agreement needs signing",
-    assessment_pending: "Assessment being arranged",
-    assessment_complete: "Assessment complete — confirm to proceed",
-  };
-
-  const agencyAlerts: Record<string, string> = {
-    pending: "Rate Agreement needs signing",
-    assessment_pending: "Arrange assessment with client",
-    assessment_complete: "Waiting for customer to confirm",
-  };
-
-  const statusAlerts = variant === "customer" ? customerAlerts : agencyAlerts;
-
   function getAlert(job: ActiveJob): string | null {
-    if (job.status !== "active") return statusAlerts[job.status] || null;
     return alerts[job.id] || null;
   }
 
