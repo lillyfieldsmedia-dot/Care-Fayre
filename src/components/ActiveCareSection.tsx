@@ -142,7 +142,7 @@ export function ActiveCareSection({ variant }: Props) {
                           {job.agency_profiles?.agency_name || "Agency"}
                         </span>
                       )}
-                      <CQCRatingBadge rating={job.agency_profiles?.cqc_rating || null} />
+                      {job.agency_profiles?.cqc_rating && <CQCRatingBadge rating={job.agency_profiles.cqc_rating} />}
                     </div>
                   ) : (
                     <div className="flex flex-col">
