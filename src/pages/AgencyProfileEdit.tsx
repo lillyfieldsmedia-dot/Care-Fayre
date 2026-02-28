@@ -8,6 +8,7 @@ import { Slider } from "@/components/ui/slider";
 import { Checkbox } from "@/components/ui/checkbox";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { AgencyLogoUpload } from "@/components/AgencyLogoUpload";
 
 const CARE_TYPE_OPTIONS = [
   "Personal Care", "Dementia Care", "Overnight Care", "Live-in Care",
@@ -32,6 +33,7 @@ export default function AgencyProfileEdit() {
   const [cqcLocationId, setCqcLocationId] = useState("");
   const [cqcRating, setCqcRating] = useState<string | null>(null);
   const [cqcExplanation, setCqcExplanation] = useState("");
+  const [logoUrl, setLogoUrl] = useState<string | null>(null);
 
   useEffect(() => {
     loadProfile();
@@ -65,6 +67,7 @@ export default function AgencyProfileEdit() {
       setCqcLocationId(data.cqc_location_id || "");
       setCqcRating(data.cqc_rating || null);
       setCqcExplanation(data.cqc_explanation || "");
+      setLogoUrl((data as any).logo_url || null);
     }
     setLoading(false);
   }
@@ -121,6 +124,7 @@ export default function AgencyProfileEdit() {
               <div className="rounded-xl border border-border bg-card p-6">
                 <h2 className="mb-4 font-serif text-lg text-foreground">Basic Info</h2>
                 <div className="space-y-4">
+                  <AgencyLogoUpload profileId={profileId} currentLogoUrl={logoUrl} onUploaded={setLogoUrl} />
                   <div className="space-y-2">
                     <Label htmlFor="agencyName">Agency Name</Label>
                     <Input id="agencyName" value={agencyName} onChange={(e) => setAgencyName(e.target.value)} />

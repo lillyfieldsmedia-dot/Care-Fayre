@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { AlertTriangle, MapPin } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { CQCRatingBadge } from "@/components/CQCRatingBadge";
+import { AgencyLogo } from "@/components/AgencyLogo";
 import type { Database } from "@/integrations/supabase/types";
 
 type JobStatus = Database["public"]["Enums"]["job_status"];
@@ -22,6 +23,7 @@ type ActiveJob = {
   agency_profiles: {
     agency_name: string;
     cqc_rating: string | null;
+    logo_url: string | null;
   } | null;
 };
 
@@ -55,7 +57,7 @@ export function ActiveCareSection({ variant }: Props) {
     const col = variant === "customer" ? "customer_id" : "agency_id";
     const { data } = await supabase
       .from("jobs")
-      .select("id, locked_hourly_rate, agreed_hours_per_week, status, start_date, care_requests(postcode, care_types, recipient_name), agency_profiles(agency_name, cqc_rating)")
+      .select("id, locked_hourly_rate, agreed_hours_per_week, status, start_date, care_requests(postcode, care_types, recipient_name), agency_profiles(agency_name, cqc_rating, logo_url)")
       .eq(col, user.id)
       .in("status", ACTIVE_STATUSES)
       .order("created_at", { ascending: false });
@@ -133,6 +135,7 @@ export function ActiveCareSection({ variant }: Props) {
                 <div className="min-w-0">
                   {variant === "customer" ? (
                     <div className="flex items-center gap-2 flex-wrap">
+                      <AgencyLogo logoUrl={job.agency_profiles?.logo_url} agencyName={job.agency_profiles?.agency_name || "Agency"} size="sm" />
                       <span className="font-medium text-foreground truncate">
                         {job.agency_profiles?.agency_name || "Agency"}
                       </span>

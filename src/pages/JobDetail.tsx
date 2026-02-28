@@ -4,6 +4,7 @@ import { Header } from "@/components/Header";
 import { supabase } from "@/integrations/supabase/client";
 import { sendEmail } from "@/lib/sendEmail";
 import { Badge } from "@/components/ui/badge";
+import { AgencyLogo } from "@/components/AgencyLogo";
 import { Button } from "@/components/ui/button";
 import { CQCRatingBadge } from "@/components/CQCRatingBadge";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -46,6 +47,7 @@ type JobDetail = {
     agency_name: string;
     cqc_rating: string | null;
     cqc_verified: boolean;
+    logo_url: string | null;
   } | null;
 };
 
@@ -122,7 +124,7 @@ export default function JobDetailPage() {
     setUserId(user.id);
 
     const [jobRes, tsRes, payRes, contractRes] = await Promise.all([
-      supabase.from("jobs").select("*, care_requests(postcode, care_types, description, frequency, recipient_name, recipient_dob, recipient_address, relationship_to_holder), agency_profiles(id, agency_name, cqc_rating, cqc_verified)").eq("id", id).single(),
+      supabase.from("jobs").select("*, care_requests(postcode, care_types, description, frequency, recipient_name, recipient_dob, recipient_address, relationship_to_holder), agency_profiles(id, agency_name, cqc_rating, cqc_verified, logo_url)").eq("id", id).single(),
       supabase.from("timesheets").select("*").eq("job_id", id).order("week_starting", { ascending: false }),
       supabase.from("payments").select("*").eq("job_id", id).order("created_at", { ascending: false }),
       supabase.from("contracts").select("customer_agreed_at, agency_agreed_at").eq("job_id", id).maybeSingle(),
@@ -550,7 +552,8 @@ export default function JobDetailPage() {
 
           {/* Agency Info */}
           <div className="mt-4 flex items-center gap-3 rounded-lg border border-border p-3">
-            <Briefcase className="h-5 w-5 text-primary" />
+            <AgencyLogo logoUrl={job.agency_profiles?.logo_url} agencyName={job.agency_profiles?.agency_name || "Agency"} size="md" />
+            {!job.agency_profiles?.logo_url && <Briefcase className="h-5 w-5 text-primary" />}
             <div>
               <Link to={`/agency/${job.agency_profiles?.id}`} className="font-medium text-primary hover:underline">{job.agency_profiles?.agency_name}</Link>
               <div className="flex items-center gap-2">

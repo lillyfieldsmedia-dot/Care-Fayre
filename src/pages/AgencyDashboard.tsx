@@ -53,7 +53,7 @@ export default function AgencyDashboard() {
     const [reqResult, jobResult, apResult] = await Promise.all([
       supabase.from("care_requests").select("*").eq("status", "open").order("created_at", { ascending: false }),
       supabase.from("jobs").select("*, care_requests(postcode, care_types, recipient_name)").eq("agency_id", user.id).order("created_at", { ascending: false }),
-      supabase.from("agency_profiles").select("id, phone, website, bio, cqc_explanation, agency_name, office_address, years_in_operation, care_types_offered, service_radius_miles, service_area_postcodes, cqc_location_id, cqc_rating").eq("user_id", user.id).single(),
+      supabase.from("agency_profiles").select("id, phone, website, bio, cqc_explanation, agency_name, office_address, years_in_operation, care_types_offered, service_radius_miles, service_area_postcodes, cqc_location_id, cqc_rating, logo_url").eq("user_id", user.id).single(),
     ]);
 
     setRequests((reqResult.data as CareRequest[]) || []);
@@ -95,6 +95,7 @@ export default function AgencyDashboard() {
                 service_area_postcodes: agencyProfile.service_area_postcodes || [],
                 cqc_location_id: agencyProfile.cqc_location_id || "",
                 cqc_rating: agencyProfile.cqc_rating,
+                logo_url: agencyProfile.logo_url,
               }}
               onSaved={loadData}
             />
@@ -124,6 +125,7 @@ export default function AgencyDashboard() {
                 service_area_postcodes: agencyProfile.service_area_postcodes || [],
                 cqc_location_id: agencyProfile.cqc_location_id || "",
                 cqc_rating: agencyProfile.cqc_rating,
+                logo_url: agencyProfile.logo_url,
               }}
               onSaved={loadData}
             />

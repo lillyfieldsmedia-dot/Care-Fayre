@@ -7,6 +7,7 @@ import { ArrowLeft, Briefcase, Globe, Phone, Building2, CalendarDays, FileText, 
 import { CQCLiveInfo } from "@/components/CQCLiveInfo";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { AgencyLogo } from "@/components/AgencyLogo";
 
 type AgencyProfileData = {
   id: string;
@@ -25,6 +26,7 @@ type AgencyProfileData = {
   care_types_offered: string[] | null;
   service_radius_miles: number;
   service_area_postcodes: string[] | null;
+  logo_url: string | null;
 };
 
 type Review = {
@@ -46,7 +48,7 @@ export default function AgencyProfile() {
     Promise.all([
       supabase
         .from("agency_profiles")
-        .select("id, agency_name, bio, website, phone, cqc_rating, cqc_provider_id, cqc_location_id, cqc_verified, cqc_explanation, years_in_operation, office_address, care_types_offered, service_radius_miles, service_area_postcodes")
+        .select("id, agency_name, bio, website, phone, cqc_rating, cqc_provider_id, cqc_location_id, cqc_verified, cqc_explanation, years_in_operation, office_address, care_types_offered, service_radius_miles, service_area_postcodes, logo_url")
         .eq("id", id)
         .single(),
       supabase
@@ -129,7 +131,9 @@ export default function AgencyProfile() {
         <div className="rounded-xl border border-border bg-card p-6">
           {/* Header */}
           <div className="flex items-start justify-between gap-4">
-            <div>
+            <div className="flex items-center gap-4">
+              <AgencyLogo logoUrl={profile.logo_url} agencyName={profile.agency_name} size="lg" />
+              <div>
               <h1 className="font-serif text-3xl text-foreground">{profile.agency_name}</h1>
               <div className="mt-2 flex items-center gap-3">
                 {profile.cqc_rating && <CQCRatingBadge rating={profile.cqc_rating} />}
@@ -143,6 +147,7 @@ export default function AgencyProfile() {
                     <span className="text-xs text-muted-foreground">({reviews.length} review{reviews.length !== 1 ? "s" : ""})</span>
                   </div>
                 )}
+              </div>
               </div>
             </div>
             <div className="flex items-center gap-2 rounded-lg border border-border px-4 py-2">

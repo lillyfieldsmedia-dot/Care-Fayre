@@ -8,6 +8,7 @@ import { sendEmail } from "@/lib/sendEmail";
 import { toast } from "sonner";
 import { MapPin, Clock, Users, AlertCircle, Moon } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { AgencyLogo } from "@/components/AgencyLogo";
 import {
   Dialog,
   DialogContent,
@@ -310,6 +311,7 @@ This agreement confirms that:
                       <div className="flex items-start justify-between gap-4">
                         <div className="flex-1">
                           <div className="flex items-center gap-2">
+                            <AgencyLogo logoUrl={bid.agency_profiles?.logo_url} agencyName={bid.agency_profiles?.agency_name || "Agency"} size="sm" />
                             <span className="font-medium text-foreground">{bid.agency_profiles?.agency_name || "Agency"}</span>
                             <CQCRatingBadge rating={bid.agency_profiles?.cqc_rating} />
                             {i === 0 && <Badge className="bg-accent text-accent-foreground">Lowest</Badge>}
