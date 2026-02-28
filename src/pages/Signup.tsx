@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useSearchParams, useNavigate, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,6 +16,7 @@ export default function Signup() {
   const [step, setStep] = useState<1 | 2>(preselectedRole ? 2 : 1);
   const [role, setRole] = useState<"customer" | "agency">(preselectedRole || "customer");
   const [loading, setLoading] = useState(false);
+  const [maxRadius, setMaxRadius] = useState(25);
 
   // Common fields
   const [fullName, setFullName] = useState("");
@@ -29,6 +30,15 @@ export default function Signup() {
   const [cqcLocationId, setCqcLocationId] = useState("");
   const [serviceRadius, setServiceRadius] = useState(25);
   const [cqcConfirm, setCqcConfirm] = useState(false);
+
+  useEffect(() => {
+    supabase.from("app_settings").select("max_radius_miles").limit(1).single().then(({ data }) => {
+      if (data) {
+        setMaxRadius(data.max_radius_miles);
+        setServiceRadius(data.max_radius_miles);
+      }
+    });
+  }, []);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -161,12 +171,12 @@ export default function Signup() {
                       <Input id="cqcLocation" value={cqcLocationId} onChange={(e) => setCqcLocationId(e.target.value)} placeholder="1-XXXXXXXXX" />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="radius">Service Radius (miles): {serviceRadius}</Label>
+                      <Label htmlFor="radius">Service Radius (miles): {serviceRadius} (max {maxRadius})</Label>
                       <input
                         type="range"
                         id="radius"
                         min={1}
-                        max={100}
+                        max={maxRadius}
                         value={serviceRadius}
                         onChange={(e) => setServiceRadius(Number(e.target.value))}
                         className="w-full accent-primary"
