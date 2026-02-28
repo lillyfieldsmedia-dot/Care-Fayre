@@ -135,10 +135,13 @@ export function ActiveCareSection({ variant }: Props) {
                 <div className="min-w-0">
                   {variant === "customer" ? (
                     <div className="flex items-center gap-2 flex-wrap">
-                      <AgencyLogo logoUrl={job.agency_profiles?.logo_url} agencyName={job.agency_profiles?.agency_name || "Agency"} size="sm" />
-                      <span className="font-medium text-foreground truncate">
-                        {job.agency_profiles?.agency_name || "Agency"}
-                      </span>
+                      {job.agency_profiles?.logo_url ? (
+                        <AgencyLogo logoUrl={job.agency_profiles.logo_url} agencyName={job.agency_profiles.agency_name || "Agency"} size="sm" />
+                      ) : (
+                        <span className="font-medium text-foreground truncate">
+                          {job.agency_profiles?.agency_name || "Agency"}
+                        </span>
+                      )}
                       <CQCRatingBadge rating={job.agency_profiles?.cqc_rating || null} />
                     </div>
                   ) : (
