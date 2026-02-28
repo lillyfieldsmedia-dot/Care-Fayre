@@ -3,9 +3,10 @@ import { useParams, Link } from "react-router-dom";
 import { Header } from "@/components/Header";
 import { supabase } from "@/integrations/supabase/client";
 import { CQCRatingBadge } from "@/components/CQCRatingBadge";
-import { ArrowLeft, Briefcase, Globe, Phone, Building2, CalendarDays, FileText, Star } from "lucide-react";
+import { ArrowLeft, Briefcase, Globe, Phone, Building2, CalendarDays, FileText, Star, MapPin, Map as MapIcon } from "lucide-react";
 import { CQCLiveInfo } from "@/components/CQCLiveInfo";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 
 type AgencyProfileData = {
   id: string;
@@ -20,6 +21,10 @@ type AgencyProfileData = {
   cqc_explanation: string | null;
   years_in_operation: number | null;
   active_jobs_count: number;
+  office_address: string | null;
+  care_types_offered: string[] | null;
+  service_radius_miles: number;
+  service_area_postcodes: string[] | null;
 };
 
 type Review = {
@@ -41,7 +46,7 @@ export default function AgencyProfile() {
     Promise.all([
       supabase
         .from("agency_profiles")
-        .select("id, agency_name, bio, website, phone, cqc_rating, cqc_provider_id, cqc_location_id, cqc_verified, cqc_explanation, years_in_operation")
+        .select("id, agency_name, bio, website, phone, cqc_rating, cqc_provider_id, cqc_location_id, cqc_verified, cqc_explanation, years_in_operation, office_address, care_types_offered, service_radius_miles, service_area_postcodes")
         .eq("id", id)
         .single(),
       supabase
@@ -58,7 +63,6 @@ export default function AgencyProfile() {
       const profileData = profileRes.data ? { ...profileRes.data, active_jobs_count: jobsCountRes.count ?? 0 } : null;
       setProfile(profileData as AgencyProfileData | null);
 
-      // Fetch reviewer names from profiles
       const rawReviews = (reviewsRes.data || []) as any[];
       if (rawReviews.length > 0) {
         const customerIds = rawReviews.map((r: any) => r.customer_id);
@@ -111,6 +115,9 @@ export default function AgencyProfile() {
     ? reviews.reduce((sum, r) => sum + r.star_rating, 0) / reviews.length
     : null;
 
+  const careTypes = profile.care_types_offered?.filter(Boolean) || [];
+  const postcodeAreas = profile.service_area_postcodes?.filter(Boolean) || [];
+
   return (
     <div className="min-h-screen bg-background">
       <Header />
@@ -147,8 +154,26 @@ export default function AgencyProfile() {
             </div>
           </div>
 
+          {/* Care Types */}
+          {careTypes.length > 0 && (
+            <div className="mt-4 flex flex-wrap gap-1.5">
+              {careTypes.map(ct => (
+                <Badge key={ct} variant="secondary" className="bg-primary/10 text-primary">{ct}</Badge>
+              ))}
+            </div>
+          )}
+
           {/* Details grid */}
           <div className="mt-6 grid gap-4 sm:grid-cols-2">
+            {profile.office_address && (
+              <div className="flex items-center gap-2 rounded-lg border border-border p-3">
+                <MapPin className="h-4 w-4 text-muted-foreground" />
+                <div>
+                  <p className="text-xs text-muted-foreground">Office Address</p>
+                  <p className="text-sm font-medium text-foreground whitespace-pre-line">{profile.office_address}</p>
+                </div>
+              </div>
+            )}
             {profile.cqc_provider_id && (
               <div className="flex items-center gap-2 rounded-lg border border-border p-3">
                 <Building2 className="h-4 w-4 text-muted-foreground" />
@@ -192,6 +217,16 @@ export default function AgencyProfile() {
                 </div>
               </div>
             )}
+            <div className="flex items-center gap-2 rounded-lg border border-border p-3">
+              <MapIcon className="h-4 w-4 text-muted-foreground" />
+              <div>
+                <p className="text-xs text-muted-foreground">Service Area</p>
+                <p className="text-sm font-medium text-foreground">Covers within {profile.service_radius_miles} miles</p>
+                {postcodeAreas.length > 0 && (
+                  <p className="text-xs text-muted-foreground mt-0.5">{postcodeAreas.join(", ")}</p>
+                )}
+              </div>
+            </div>
           </div>
 
           {/* Bio */}

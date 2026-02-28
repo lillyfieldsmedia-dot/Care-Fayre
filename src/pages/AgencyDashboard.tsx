@@ -39,7 +39,7 @@ export default function AgencyDashboard() {
   const [tab, setTab] = useState<"available" | "bids" | "jobs" | "timesheets" | "notifications">("available");
   const [requests, setRequests] = useState<CareRequest[]>([]);
   const [jobs, setJobs] = useState<AgencyJob[]>([]);
-  const [agencyProfile, setAgencyProfile] = useState<{ id: string; phone: string; website: string; bio: string; cqc_explanation: string } | null>(null);
+  const [agencyProfile, setAgencyProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -53,7 +53,7 @@ export default function AgencyDashboard() {
     const [reqResult, jobResult, apResult] = await Promise.all([
       supabase.from("care_requests").select("*").eq("status", "open").order("created_at", { ascending: false }),
       supabase.from("jobs").select("*, care_requests(postcode, care_types, recipient_name)").eq("agency_id", user.id).order("created_at", { ascending: false }),
-      supabase.from("agency_profiles").select("id, phone, website, bio, cqc_explanation").eq("user_id", user.id).single(),
+      supabase.from("agency_profiles").select("id, phone, website, bio, cqc_explanation, agency_name, office_address, years_in_operation, care_types_offered, service_radius_miles, service_area_postcodes, cqc_location_id, cqc_rating").eq("user_id", user.id).single(),
     ]);
 
     setRequests((reqResult.data as CareRequest[]) || []);
@@ -87,6 +87,14 @@ export default function AgencyDashboard() {
                 website: agencyProfile.website || "",
                 bio: agencyProfile.bio || "",
                 cqc_explanation: agencyProfile.cqc_explanation || "",
+                agency_name: agencyProfile.agency_name || "",
+                office_address: agencyProfile.office_address || "",
+                years_in_operation: agencyProfile.years_in_operation,
+                care_types_offered: agencyProfile.care_types_offered || [],
+                service_radius_miles: agencyProfile.service_radius_miles,
+                service_area_postcodes: agencyProfile.service_area_postcodes || [],
+                cqc_location_id: agencyProfile.cqc_location_id || "",
+                cqc_rating: agencyProfile.cqc_rating,
               }}
               onSaved={loadData}
             />
@@ -108,6 +116,14 @@ export default function AgencyDashboard() {
                 website: agencyProfile.website || "",
                 bio: agencyProfile.bio || "",
                 cqc_explanation: agencyProfile.cqc_explanation || "",
+                agency_name: agencyProfile.agency_name || "",
+                office_address: agencyProfile.office_address || "",
+                years_in_operation: agencyProfile.years_in_operation,
+                care_types_offered: agencyProfile.care_types_offered || [],
+                service_radius_miles: agencyProfile.service_radius_miles,
+                service_area_postcodes: agencyProfile.service_area_postcodes || [],
+                cqc_location_id: agencyProfile.cqc_location_id || "",
+                cqc_rating: agencyProfile.cqc_rating,
               }}
               onSaved={loadData}
             />

@@ -19,6 +19,7 @@ export type Database = {
           active_jobs_count: number
           agency_name: string
           bio: string | null
+          care_types_offered: string[] | null
           cqc_explanation: string | null
           cqc_last_checked: string | null
           cqc_location_id: string | null
@@ -30,6 +31,7 @@ export type Database = {
           insurance_confirmed: boolean
           latitude: number | null
           longitude: number | null
+          office_address: string | null
           phone: string | null
           service_area_postcodes: string[] | null
           service_radius_miles: number
@@ -42,6 +44,7 @@ export type Database = {
           active_jobs_count?: number
           agency_name: string
           bio?: string | null
+          care_types_offered?: string[] | null
           cqc_explanation?: string | null
           cqc_last_checked?: string | null
           cqc_location_id?: string | null
@@ -53,6 +56,7 @@ export type Database = {
           insurance_confirmed?: boolean
           latitude?: number | null
           longitude?: number | null
+          office_address?: string | null
           phone?: string | null
           service_area_postcodes?: string[] | null
           service_radius_miles?: number
@@ -65,6 +69,7 @@ export type Database = {
           active_jobs_count?: number
           agency_name?: string
           bio?: string | null
+          care_types_offered?: string[] | null
           cqc_explanation?: string | null
           cqc_last_checked?: string | null
           cqc_location_id?: string | null
@@ -76,6 +81,7 @@ export type Database = {
           insurance_confirmed?: boolean
           latitude?: number | null
           longitude?: number | null
+          office_address?: string | null
           phone?: string | null
           service_area_postcodes?: string[] | null
           service_radius_miles?: number
@@ -463,30 +469,45 @@ export type Database = {
       profiles: {
         Row: {
           created_at: string
+          email_address: string | null
+          emergency_contact_name: string | null
+          emergency_contact_phone: string | null
+          full_address: string | null
           full_name: string
           id: string
           phone: string | null
           postcode: string | null
+          preferred_contact_method: string | null
           profile_photo: string | null
           updated_at: string
           user_id: string
         }
         Insert: {
           created_at?: string
+          email_address?: string | null
+          emergency_contact_name?: string | null
+          emergency_contact_phone?: string | null
+          full_address?: string | null
           full_name?: string
           id?: string
           phone?: string | null
           postcode?: string | null
+          preferred_contact_method?: string | null
           profile_photo?: string | null
           updated_at?: string
           user_id: string
         }
         Update: {
           created_at?: string
+          email_address?: string | null
+          emergency_contact_name?: string | null
+          emergency_contact_phone?: string | null
+          full_address?: string | null
           full_name?: string
           id?: string
           phone?: string | null
           postcode?: string | null
+          preferred_contact_method?: string | null
           profile_photo?: string | null
           updated_at?: string
           user_id?: string
