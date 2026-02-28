@@ -4,6 +4,7 @@ import { Header } from "@/components/Header";
 import { supabase } from "@/integrations/supabase/client";
 import { MapPin, Clock, Briefcase, TrendingUp, AlertCircle, Bell } from "lucide-react";
 import { NotificationsTab } from "@/components/NotificationsTab";
+import { ActiveCareSection } from "@/components/ActiveCareSection";
 import { Badge } from "@/components/ui/badge";
 import { EditAgencyProfileDialog } from "@/components/EditAgencyProfileDialog";
 import { Button } from "@/components/ui/button";
@@ -128,6 +129,8 @@ export default function AgencyDashboard() {
             </div>
           ))}
         </div>
+
+        <ActiveCareSection variant="agency" />
 
         {/* Tabs */}
         <div className="mt-8 flex gap-1 rounded-lg border border-border bg-muted p-1">
