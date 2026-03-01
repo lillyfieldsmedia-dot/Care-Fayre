@@ -142,14 +142,16 @@ export function Header() {
         <nav className="hidden items-center gap-1 md:flex">
           {user ? (
             <>
-              <Button variant="ghost" asChild><Link to={dashboardLink}>Dashboard</Link></Button>
+              {role !== "customer" && (
+                <Button variant="ghost" asChild><Link to={dashboardLink}>Dashboard</Link></Button>
+              )}
               {role === "customer" && (
                 hasActiveCare
                   ? <>
                       <Button variant="ghost" asChild><Link to="/dashboard">My Care</Link></Button>
                       <Button variant="ghost" asChild>
                         <Link to="/dashboard?tab=timesheets" className="relative">
-                          <Clock className="mr-1.5 h-4 w-4" />
+                          <Clock className="mr-1 h-4 w-4" />
                           Timesheets
                           {pendingTimesheetCount > 0 && (
                             <span className="ml-1.5 flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-destructive px-1 text-[10px] font-bold text-destructive-foreground">
@@ -228,14 +230,16 @@ export function Header() {
         <div className="border-t border-border bg-card px-4 pb-4 pt-2 md:hidden">
           {user ? (
             <div className="flex flex-col gap-2">
-              <Button variant="ghost" asChild className="justify-start"><Link to={dashboardLink}>Dashboard</Link></Button>
+              {role !== "customer" && (
+                <Button variant="ghost" asChild className="justify-start"><Link to={dashboardLink}>Dashboard</Link></Button>
+              )}
               {role === "customer" && (
                 hasActiveCare
                   ? <>
                       <Button variant="ghost" asChild className="justify-start"><Link to="/dashboard">My Care</Link></Button>
                       <Button variant="ghost" asChild className="justify-start">
                         <Link to="/dashboard?tab=timesheets" className="relative">
-                          <Clock className="mr-1.5 h-4 w-4" />
+                          <Clock className="mr-1 h-4 w-4" />
                           Timesheets
                           {pendingTimesheetCount > 0 && (
                             <span className="ml-1.5 flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-destructive px-1 text-[10px] font-bold text-destructive-foreground">
