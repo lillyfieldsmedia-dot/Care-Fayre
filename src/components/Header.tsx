@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Bell, Menu, X, LogOut, User } from "lucide-react";
+import { Bell, Menu, X, LogOut, User, Clock } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import {
   DropdownMenu,
@@ -40,6 +40,7 @@ export function Header() {
   const [unreadCount, setUnreadCount] = useState(0);
   const [latestNotifications, setLatestNotifications] = useState<NotificationPreview[]>([]);
   const [hasActiveCare, setHasActiveCare] = useState(false);
+  const [pendingTimesheetCount, setPendingTimesheetCount] = useState(0);
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
@@ -73,7 +74,24 @@ export function Header() {
 
   async function fetchActiveCare(userId: string) {
     const { count } = await supabase.from("jobs").select("*", { count: "exact", head: true }).eq("customer_id", userId).eq("status", "active");
-    setHasActiveCare((count ?? 0) > 0);
+    const activeCount = count ?? 0;
+    setHasActiveCare(activeCount > 0);
+
+    if (activeCount > 0) {
+      // Get job IDs then count pending timesheets
+      const { data: jobData } = await supabase.from("jobs").select("id").eq("customer_id", userId).eq("status", "active");
+      if (jobData && jobData.length > 0) {
+        const jobIds = jobData.map(j => j.id);
+        const { count: tsCount } = await supabase
+          .from("timesheets")
+          .select("*", { count: "exact", head: true })
+          .in("job_id", jobIds)
+          .in("status", ["submitted", "resubmitted"]);
+        setPendingTimesheetCount(tsCount ?? 0);
+      }
+    } else {
+      setPendingTimesheetCount(0);
+    }
   }
 
   async function fetchUnread(userId: string) {
@@ -127,7 +145,20 @@ export function Header() {
               <Button variant="ghost" asChild><Link to={dashboardLink}>Dashboard</Link></Button>
               {role === "customer" && (
                 hasActiveCare
-                  ? <Button variant="ghost" asChild><Link to="/dashboard">My Care</Link></Button>
+                  ? <>
+                      <Button variant="ghost" asChild><Link to="/dashboard">My Care</Link></Button>
+                      <Button variant="ghost" asChild>
+                        <Link to="/dashboard?tab=timesheets" className="relative">
+                          <Clock className="mr-1.5 h-4 w-4" />
+                          Timesheets
+                          {pendingTimesheetCount > 0 && (
+                            <span className="ml-1.5 flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-destructive px-1 text-[10px] font-bold text-destructive-foreground">
+                              {pendingTimesheetCount > 9 ? "9+" : pendingTimesheetCount}
+                            </span>
+                          )}
+                        </Link>
+                      </Button>
+                    </>
                   : <Button variant="ghost" asChild><Link to="/create-request">Post Request</Link></Button>
               )}
               <DropdownMenu>
@@ -200,7 +231,20 @@ export function Header() {
               <Button variant="ghost" asChild className="justify-start"><Link to={dashboardLink}>Dashboard</Link></Button>
               {role === "customer" && (
                 hasActiveCare
-                  ? <Button variant="ghost" asChild className="justify-start"><Link to="/dashboard">My Care</Link></Button>
+                  ? <>
+                      <Button variant="ghost" asChild className="justify-start"><Link to="/dashboard">My Care</Link></Button>
+                      <Button variant="ghost" asChild className="justify-start">
+                        <Link to="/dashboard?tab=timesheets" className="relative">
+                          <Clock className="mr-1.5 h-4 w-4" />
+                          Timesheets
+                          {pendingTimesheetCount > 0 && (
+                            <span className="ml-1.5 flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-destructive px-1 text-[10px] font-bold text-destructive-foreground">
+                              {pendingTimesheetCount > 9 ? "9+" : pendingTimesheetCount}
+                            </span>
+                          )}
+                        </Link>
+                      </Button>
+                    </>
                   : <Button variant="ghost" asChild className="justify-start"><Link to="/create-request">Post Request</Link></Button>
               )}
               <Button variant="ghost" asChild className="justify-start"><Link to={role === "agency" ? "/agency-profile" : "/profile"}>Profile</Link></Button>

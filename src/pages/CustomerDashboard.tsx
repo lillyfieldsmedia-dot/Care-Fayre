@@ -1,11 +1,12 @@
 import { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Header } from "@/components/Header";
 import { supabase } from "@/integrations/supabase/client";
-import { Plus, FileText, Briefcase, Bell, MapPin, Star } from "lucide-react";
+import { Plus, FileText, Briefcase, Bell, MapPin, Star, Clock } from "lucide-react";
 import { NotificationsTab } from "@/components/NotificationsTab";
 import { ActiveCareSection } from "@/components/ActiveCareSection";
+import { CustomerTimesheetsTab } from "@/components/CustomerTimesheetsTab";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
@@ -61,11 +62,14 @@ const jobStatusLabels: Record<string, string> = {
 };
 
 export default function CustomerDashboard() {
-  const [tab, setTab] = useState<"requests" | "jobs" | "notifications">("requests");
+  const [searchParams] = useSearchParams();
+  const [tab, setTab] = useState<"requests" | "jobs" | "timesheets" | "notifications">("requests");
+  const [tabInitialized, setTabInitialized] = useState(false);
   const [requestFilter, setRequestFilter] = useState<"active" | "accepted" | "closed">("active");
   const [requests, setRequests] = useState<CareRequest[]>([]);
   const [jobs, setJobs] = useState<Job[]>([]);
   const [loading, setLoading] = useState(true);
+  const [pendingTimesheetCount, setPendingTimesheetCount] = useState(0);
   const [reviewableJobs, setReviewableJobs] = useState<ReviewableJob[]>([]);
   const [reviewingJobId, setReviewingJobId] = useState<string | null>(null);
   const [reviewRating, setReviewRating] = useState(0);
@@ -147,6 +151,20 @@ export default function CustomerDashboard() {
     const allJobs = (jobResult.data as Job[]) || [];
     setJobs(allJobs);
 
+    // Count pending timesheets across active jobs
+    const activeJobs = allJobs.filter(j => j.status === "active");
+    let tsPendingCount = 0;
+    if (activeJobs.length > 0) {
+      const jobIds = activeJobs.map(j => j.id);
+      const { count } = await supabase
+        .from("timesheets")
+        .select("*", { count: "exact", head: true })
+        .in("job_id", jobIds)
+        .in("status", ["submitted", "resubmitted"]);
+      tsPendingCount = count ?? 0;
+    }
+    setPendingTimesheetCount(tsPendingCount);
+
     const reviewedJobIds = new Set((existingReviews.data || []).map((r: any) => r.job_id));
 
     const reviewable = allJobs
@@ -164,6 +182,19 @@ export default function CustomerDashboard() {
 
     setReviewableJobs(reviewable);
     setLoading(false);
+
+    // Set default tab after data is loaded (only once)
+    if (!tabInitialized) {
+      const urlTab = searchParams.get("tab");
+      if (urlTab === "timesheets") {
+        setTab("timesheets");
+      } else if (urlTab === "notifications") {
+        setTab("notifications");
+      } else if (tsPendingCount > 0) {
+        setTab("timesheets");
+      }
+      setTabInitialized(true);
+    }
   }
 
   async function handleSubmitReview(job: ReviewableJob) {
@@ -198,6 +229,7 @@ export default function CustomerDashboard() {
   const tabs = [
     { key: "requests" as const, label: "My Requests", icon: FileText, count: openRequestCount || undefined },
     { key: "jobs" as const, label: "My Care", icon: Briefcase, count: activeJobCount || undefined },
+    { key: "timesheets" as const, label: "Timesheets", icon: Clock, count: pendingTimesheetCount || undefined },
     { key: "notifications" as const, label: "Notifications", icon: Bell },
   ];
 
@@ -424,6 +456,8 @@ export default function CustomerDashboard() {
                 ))}
               </div>
             )
+          ) : tab === "timesheets" ? (
+            <CustomerTimesheetsTab />
           ) : (
             <NotificationsTab />
           )}
