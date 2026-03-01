@@ -111,6 +111,25 @@ export function AgencyTimesheetsTab() {
     if (error) {
       toast.error("Failed to submit timesheet: " + error.message);
     } else {
+      // Notify customer
+      const job = jobs.find((j) => j.id === jobId);
+      if (job) {
+        await supabase.from("notifications").insert({
+          recipient_id: job.customer_id,
+          type: "timesheet_submitted",
+          message: `A new timesheet has been submitted for week starting ${format(weekStarting, "dd MMM yyyy")}. Please review within 24 hours or it will be automatically approved and payment collected.`,
+          related_job_id: job.id,
+        });
+
+        sendEmail({
+          userId: job.customer_id,
+          subject: "New Timesheet Submitted — Review Required",
+          bodyText: `A new timesheet has been submitted for the week starting ${format(weekStarting, "dd MMM yyyy")} (${hoursWorked} hours). Please review within 24 hours or it will be automatically approved and payment collected.`,
+          ctaUrl: `${window.location.origin}/job/${job.id}`,
+          ctaText: "Review Timesheet",
+        });
+      }
+
       toast.success("Timesheet submitted");
       setExpandedJobId(null);
       setHoursWorked("");
@@ -345,32 +364,35 @@ export function AgencyTimesheetsTab() {
 
                         {/* Agency action buttons */}
                         {canAct && (
-                          <div className="flex gap-1.5">
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="h-7 text-xs"
-                              onClick={() => {
-                                setRespondingTsId(ts.id);
-                                setRespondMode("adjust");
-                                setAdjustedHours(String(ts.hours_worked));
-                                setResponseNote("");
-                              }}
-                            >
-                              <RotateCcw className="mr-1 h-3 w-3" /> Adjust
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="h-7 text-xs"
-                              onClick={() => {
-                                setRespondingTsId(ts.id);
-                                setRespondMode("respond");
-                                setResponseNote("");
-                              }}
-                            >
-                              <MessageSquare className="mr-1 h-3 w-3" /> Respond
-                            </Button>
+                          <div className="space-y-1.5">
+                            <div className="flex gap-1.5">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="h-7 text-xs"
+                                onClick={() => {
+                                  setRespondingTsId(ts.id);
+                                  setRespondMode("adjust");
+                                  setAdjustedHours(String(ts.hours_worked));
+                                  setResponseNote("");
+                                }}
+                              >
+                                <RotateCcw className="mr-1 h-3 w-3" /> Adjust
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="h-7 text-xs"
+                                onClick={() => {
+                                  setRespondingTsId(ts.id);
+                                  setRespondMode("respond");
+                                  setResponseNote("");
+                                }}
+                              >
+                                <MessageSquare className="mr-1 h-3 w-3" /> Respond
+                              </Button>
+                            </div>
+                            <p className="text-xs text-amber-600 dark:text-amber-400">If you don't respond within 24 hours, the customer's suggested hours will be used for payment.</p>
                           </div>
                         )}
                       </div>

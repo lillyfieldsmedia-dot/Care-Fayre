@@ -161,6 +161,23 @@ export default function JobDetailPage() {
       hours_worked: parseFloat(tsHours),
       notes: tsNotes,
     });
+
+    // Notify customer about new timesheet
+    await supabase.from("notifications").insert({
+      recipient_id: job.customer_id,
+      type: "timesheet_submitted",
+      message: `A new timesheet has been submitted for week starting ${new Date(tsWeek).toLocaleDateString()}. Please review within 24 hours or it will be automatically approved and payment collected.`,
+      related_job_id: job.id,
+    });
+
+    sendEmail({
+      userId: job.customer_id,
+      subject: "New Timesheet Submitted — Review Required",
+      bodyText: `A new timesheet has been submitted for the week starting ${new Date(tsWeek).toLocaleDateString()} (${tsHours} hours). Please review within 24 hours or it will be automatically approved and payment collected.`,
+      ctaUrl: `${window.location.origin}/job/${job.id}`,
+      ctaText: "Review Timesheet",
+    });
+
     setShowTimesheetForm(false);
     setTsWeek("");
     setTsHours("");
@@ -857,24 +874,27 @@ export default function JobDetailPage() {
 
                         {/* Customer action buttons */}
                         {canCustomerAct && (
-                          <div className="flex gap-2">
-                            <Button size="sm" variant="outline" onClick={() => handleApproveTimesheet(ts.id, effectiveHours)}>
-                              <CheckCircle className="mr-1 h-3 w-3" /> Approve
-                            </Button>
-                            {ts.query_count < 2 && (
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                className="border-amber-300 text-amber-700 hover:bg-amber-50 dark:border-amber-700 dark:text-amber-300 dark:hover:bg-amber-950"
-                                onClick={() => {
-                                  setQueryingTsId(ts.id);
-                                  setQuerySuggestedHours(String(ts.hours_worked));
-                                  setQueryNote("");
-                                }}
-                              >
-                                <MessageSquare className="mr-1 h-3 w-3" /> Query
+                          <div className="space-y-2">
+                            <div className="flex gap-2">
+                              <Button size="sm" variant="outline" onClick={() => handleApproveTimesheet(ts.id, effectiveHours)}>
+                                <CheckCircle className="mr-1 h-3 w-3" /> Approve
                               </Button>
-                            )}
+                              {ts.query_count < 2 && (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="border-amber-300 text-amber-700 hover:bg-amber-50 dark:border-amber-700 dark:text-amber-300 dark:hover:bg-amber-950"
+                                  onClick={() => {
+                                    setQueryingTsId(ts.id);
+                                    setQuerySuggestedHours(String(ts.hours_worked));
+                                    setQueryNote("");
+                                  }}
+                                >
+                                  <MessageSquare className="mr-1 h-3 w-3" /> Query
+                                </Button>
+                              )}
+                            </div>
+                            <p className="text-xs text-amber-600 dark:text-amber-400">If you don't respond within 24 hours, this timesheet will be automatically approved and payment will be collected.</p>
                           </div>
                         )}
 
