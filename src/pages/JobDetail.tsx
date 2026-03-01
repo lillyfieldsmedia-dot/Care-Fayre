@@ -259,31 +259,57 @@ export default function JobDetailPage() {
     setResponseSubmitting(true);
     const deadline = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
     const adjHours = respondMode === "adjust" && adjustedHours ? parseFloat(adjustedHours) : null;
+    const autoApprove = adjHours != null && ts.suggested_hours != null && adjHours === ts.suggested_hours;
 
-    await supabase.from("timesheets").update({
-      status: "resubmitted",
-      query_response: responseNote,
-      adjusted_hours: adjHours,
-      response_deadline: deadline,
-    } as any).eq("id", ts.id);
+    if (autoApprove) {
+      await supabase.from("timesheets").update({
+        status: "approved",
+        query_response: responseNote || null,
+        adjusted_hours: adjHours,
+        approved_at: new Date().toISOString(),
+      } as any).eq("id", ts.id);
 
-    // Notify customer
-    await supabase.from("notifications").insert({
-      recipient_id: job.customer_id,
-      type: "timesheet_resubmitted",
-      message: `The agency has responded to your timesheet query for week starting ${new Date(ts.week_starting).toLocaleDateString()}. Please review.`,
-      related_job_id: job.id,
-    });
+      await supabase.from("notifications").insert({
+        recipient_id: job.customer_id,
+        type: "timesheet_approved",
+        message: `The agency has adjusted the timesheet to ${adjHours} hours as you suggested. It has been automatically approved.`,
+        related_job_id: job.id,
+      });
 
-    sendEmail({
-      userId: job.customer_id,
-      subject: "Timesheet Response from Agency",
-      bodyText: `The agency has responded to your timesheet query for the week starting ${new Date(ts.week_starting).toLocaleDateString()}. Please log in to review and approve.`,
-      ctaUrl: `${window.location.origin}/job/${job.id}`,
-      ctaText: "Review Response",
-    });
+      sendEmail({
+        userId: job.customer_id,
+        subject: "Timesheet Auto-Approved",
+        bodyText: `The agency has adjusted the timesheet for the week starting ${new Date(ts.week_starting).toLocaleDateString()} to ${adjHours} hours as you suggested. It has been automatically approved.`,
+        ctaUrl: `${window.location.origin}/job/${job.id}`,
+        ctaText: "View Timesheet",
+      });
 
-    toast.success("Response sent");
+      toast.success("Hours adjusted to match — timesheet approved");
+    } else {
+      await supabase.from("timesheets").update({
+        status: "resubmitted",
+        query_response: responseNote || null,
+        adjusted_hours: adjHours,
+        response_deadline: deadline,
+      } as any).eq("id", ts.id);
+
+      await supabase.from("notifications").insert({
+        recipient_id: job.customer_id,
+        type: "timesheet_resubmitted",
+        message: `The agency has responded to your timesheet query for week starting ${new Date(ts.week_starting).toLocaleDateString()}. Please review.`,
+        related_job_id: job.id,
+      });
+
+      sendEmail({
+        userId: job.customer_id,
+        subject: "Timesheet Response from Agency",
+        bodyText: `The agency has responded to your timesheet query for the week starting ${new Date(ts.week_starting).toLocaleDateString()}. Please log in to review and approve.`,
+        ctaUrl: `${window.location.origin}/job/${job.id}`,
+        ctaText: "Review Response",
+      });
+
+      toast.success("Response sent");
+    }
     setRespondingTsId(null);
     setRespondMode(null);
     setResponseNote("");
