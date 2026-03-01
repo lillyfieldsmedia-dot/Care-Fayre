@@ -39,6 +39,7 @@ export function Header() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
   const [latestNotifications, setLatestNotifications] = useState<NotificationPreview[]>([]);
+  const [hasActiveCare, setHasActiveCare] = useState(false);
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
@@ -46,10 +47,12 @@ export function Header() {
       if (session?.user) {
         fetchRole(session.user.id);
         fetchUnread(session.user.id);
+        fetchActiveCare(session.user.id);
       } else {
         setRole(null);
         setUnreadCount(0);
         setLatestNotifications([]);
+        setHasActiveCare(false);
       }
     });
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -57,6 +60,7 @@ export function Header() {
       if (session?.user) {
         fetchRole(session.user.id);
         fetchUnread(session.user.id);
+        fetchActiveCare(session.user.id);
       }
     });
     return () => subscription.unsubscribe();
@@ -65,6 +69,11 @@ export function Header() {
   async function fetchRole(userId: string) {
     const { data } = await supabase.from("user_roles").select("role").eq("user_id", userId).maybeSingle();
     setRole(data?.role ?? null);
+  }
+
+  async function fetchActiveCare(userId: string) {
+    const { count } = await supabase.from("jobs").select("*", { count: "exact", head: true }).eq("customer_id", userId).eq("status", "active");
+    setHasActiveCare((count ?? 0) > 0);
   }
 
   async function fetchUnread(userId: string) {
@@ -116,7 +125,11 @@ export function Header() {
           {user ? (
             <>
               <Button variant="ghost" asChild><Link to={dashboardLink}>Dashboard</Link></Button>
-              {role === "customer" && <Button variant="ghost" asChild><Link to="/create-request">Post Request</Link></Button>}
+              {role === "customer" && (
+                hasActiveCare
+                  ? <Button variant="ghost" asChild><Link to="/dashboard">My Care</Link></Button>
+                  : <Button variant="ghost" asChild><Link to="/create-request">Post Request</Link></Button>
+              )}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" size="icon" className="relative">
@@ -185,7 +198,11 @@ export function Header() {
           {user ? (
             <div className="flex flex-col gap-2">
               <Button variant="ghost" asChild className="justify-start"><Link to={dashboardLink}>Dashboard</Link></Button>
-              {role === "customer" && <Button variant="ghost" asChild className="justify-start"><Link to="/create-request">Post Request</Link></Button>}
+              {role === "customer" && (
+                hasActiveCare
+                  ? <Button variant="ghost" asChild className="justify-start"><Link to="/dashboard">My Care</Link></Button>
+                  : <Button variant="ghost" asChild className="justify-start"><Link to="/create-request">Post Request</Link></Button>
+              )}
               <Button variant="ghost" asChild className="justify-start"><Link to={role === "agency" ? "/agency-profile" : "/profile"}>Profile</Link></Button>
               <Button variant="ghost" className="justify-start" onClick={handleLogout}><LogOut className="mr-2 h-4 w-4" /> Log out</Button>
             </div>
