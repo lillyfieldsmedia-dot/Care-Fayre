@@ -246,8 +246,13 @@ export default function JobDetailPage() {
     loadData();
   }
 
-  async function handleAgencyRespond(ts: TimesheetWithQuery) {
-    if (!job || !responseNote.trim()) {
+   async function handleAgencyRespond(ts: TimesheetWithQuery) {
+    if (!job) return;
+    if (respondMode === "adjust" && !adjustedHours) {
+      toast.error("Please enter adjusted hours");
+      return;
+    }
+    if (respondMode === "respond" && !responseNote.trim()) {
       toast.error("Please provide a response");
       return;
     }
@@ -941,7 +946,7 @@ export default function JobDetailPage() {
                             />
                           </div>
                           <div className="flex gap-2">
-                            <Button size="sm" onClick={() => handleAgencyRespond(ts)} disabled={responseSubmitting || !responseNote.trim()}>
+                            <Button size="sm" onClick={() => handleAgencyRespond(ts)} disabled={responseSubmitting || (respondMode === "adjust" ? !adjustedHours : !responseNote.trim())}>
                               {responseSubmitting ? "Sending..." : respondMode === "adjust" ? "Resubmit" : "Send Response"}
                             </Button>
                             <Button size="sm" variant="ghost" onClick={() => { setRespondingTsId(null); setRespondMode(null); }}>Cancel</Button>
