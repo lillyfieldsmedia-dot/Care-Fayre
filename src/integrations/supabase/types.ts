@@ -564,38 +564,59 @@ export type Database = {
       }
       timesheets: {
         Row: {
+          adjusted_hours: number | null
           approved_at: string | null
           created_at: string
           hours_worked: number
           id: string
           job_id: string
           notes: string | null
+          queried_at: string | null
+          query_count: number
+          query_note: string | null
+          query_response: string | null
+          response_deadline: string | null
           status: string
           submitted_by: string
+          suggested_hours: number | null
           updated_at: string
           week_starting: string
         }
         Insert: {
+          adjusted_hours?: number | null
           approved_at?: string | null
           created_at?: string
           hours_worked?: number
           id?: string
           job_id: string
           notes?: string | null
+          queried_at?: string | null
+          query_count?: number
+          query_note?: string | null
+          query_response?: string | null
+          response_deadline?: string | null
           status?: string
           submitted_by: string
+          suggested_hours?: number | null
           updated_at?: string
           week_starting: string
         }
         Update: {
+          adjusted_hours?: number | null
           approved_at?: string | null
           created_at?: string
           hours_worked?: number
           id?: string
           job_id?: string
           notes?: string | null
+          queried_at?: string | null
+          query_count?: number
+          query_note?: string | null
+          query_response?: string | null
+          response_deadline?: string | null
           status?: string
           submitted_by?: string
+          suggested_hours?: number | null
           updated_at?: string
           week_starting?: string
         }

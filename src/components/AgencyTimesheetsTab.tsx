@@ -1,37 +1,27 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Clock, ChevronDown, ChevronUp, FileText } from "lucide-react";
+import { Clock, ChevronDown, ChevronUp, FileText, MessageSquare, RotateCcw } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
+import { sendEmail } from "@/lib/sendEmail";
+import { TimesheetQueryDetails, tsQueryStatusColors, type TimesheetWithQuery } from "@/components/TimesheetQueryHistory";
 
 type TimesheetJob = {
   id: string;
   locked_hourly_rate: number;
+  customer_id: string;
   care_requests: {
     postcode: string;
     care_types: string[];
     recipient_name: string | null;
   } | null;
-};
-
-type Timesheet = {
-  id: string;
-  week_starting: string;
-  hours_worked: number;
-  status: string;
-  notes: string | null;
-};
-
-const tsStatusClass: Record<string, string> = {
-  pending: "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300",
-  approved: "bg-cqc-good text-primary-foreground",
-  disputed: "bg-destructive/20 text-destructive",
 };
 
 function getMostRecentMonday(): Date {
@@ -45,13 +35,20 @@ function getMostRecentMonday(): Date {
 
 export function AgencyTimesheetsTab() {
   const [jobs, setJobs] = useState<TimesheetJob[]>([]);
-  const [timesheets, setTimesheets] = useState<Record<string, Timesheet[]>>({});
+  const [timesheets, setTimesheets] = useState<Record<string, TimesheetWithQuery[]>>({});
   const [loading, setLoading] = useState(true);
   const [expandedJobId, setExpandedJobId] = useState<string | null>(null);
   const [weekStarting, setWeekStarting] = useState<Date>(getMostRecentMonday());
   const [hoursWorked, setHoursWorked] = useState("");
   const [notes, setNotes] = useState("");
   const [submitting, setSubmitting] = useState(false);
+
+  // Agency response state
+  const [respondingTsId, setRespondingTsId] = useState<string | null>(null);
+  const [respondMode, setRespondMode] = useState<"adjust" | "respond" | null>(null);
+  const [responseNote, setResponseNote] = useState("");
+  const [adjustedHours, setAdjustedHours] = useState("");
+  const [responseSubmitting, setResponseSubmitting] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -63,28 +60,28 @@ export function AgencyTimesheetsTab() {
 
     const { data: jobData } = await supabase
       .from("jobs")
-      .select("id, locked_hourly_rate, care_requests(postcode, care_types, recipient_name)")
+      .select("id, locked_hourly_rate, customer_id, care_requests(postcode, care_types, recipient_name)")
       .eq("agency_id", user.id)
       .eq("status", "active")
       .order("created_at", { ascending: false });
 
-    const activeJobs = (jobData as TimesheetJob[]) || [];
+    const activeJobs = (jobData as any as TimesheetJob[]) || [];
     setJobs(activeJobs);
 
     if (activeJobs.length > 0) {
-      const tsMap: Record<string, Timesheet[]> = {};
+      const tsMap: Record<string, TimesheetWithQuery[]> = {};
       const results = await Promise.all(
         activeJobs.map((j) =>
           supabase
             .from("timesheets")
-            .select("id, week_starting, hours_worked, status, notes")
+            .select("*")
             .eq("job_id", j.id)
             .order("week_starting", { ascending: false })
-            .limit(4)
+            .limit(8)
         )
       );
       activeJobs.forEach((j, i) => {
-        tsMap[j.id] = (results[i].data as Timesheet[]) || [];
+        tsMap[j.id] = (results[i].data as any as TimesheetWithQuery[]) || [];
       });
       setTimesheets(tsMap);
     }
@@ -121,6 +118,47 @@ export function AgencyTimesheetsTab() {
       setWeekStarting(getMostRecentMonday());
       loadData();
     }
+  }
+
+  async function handleAgencyRespond(ts: TimesheetWithQuery, job: TimesheetJob) {
+    if (!responseNote.trim()) {
+      toast.error("Please provide a response");
+      return;
+    }
+    setResponseSubmitting(true);
+    const deadline = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+    const adjHours = respondMode === "adjust" && adjustedHours ? parseFloat(adjustedHours) : null;
+
+    await supabase.from("timesheets").update({
+      status: "resubmitted",
+      query_response: responseNote,
+      adjusted_hours: adjHours,
+      response_deadline: deadline,
+    } as any).eq("id", ts.id);
+
+    // Notify customer
+    await supabase.from("notifications").insert({
+      recipient_id: job.customer_id,
+      type: "timesheet_resubmitted",
+      message: `The agency has responded to your timesheet query for week starting ${new Date(ts.week_starting).toLocaleDateString()}. Please review.`,
+      related_job_id: job.id,
+    });
+
+    sendEmail({
+      userId: job.customer_id,
+      subject: "Timesheet Response from Agency",
+      bodyText: `The agency has responded to your timesheet query for the week starting ${new Date(ts.week_starting).toLocaleDateString()}. Please log in to review and approve.`,
+      ctaUrl: `${window.location.origin}/job/${job.id}`,
+      ctaText: "Review Response",
+    });
+
+    toast.success("Response sent");
+    setRespondingTsId(null);
+    setRespondMode(null);
+    setResponseNote("");
+    setAdjustedHours("");
+    setResponseSubmitting(false);
+    loadData();
   }
 
   if (loading) {
@@ -161,7 +199,7 @@ export function AgencyTimesheetsTab() {
                 {latestStatus && (
                   <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
                     <span>Latest timesheet:</span>
-                    <Badge className={tsStatusClass[latestStatus] || "bg-muted"}>
+                    <Badge className={tsQueryStatusColors[latestStatus] || "bg-muted"}>
                       {latestStatus}
                     </Badge>
                   </div>
@@ -251,29 +289,103 @@ export function AgencyTimesheetsTab() {
 
             {/* Recent timesheets */}
             {jobTimesheets.length > 0 && (
-              <div className="border-t border-border">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="text-xs text-muted-foreground">
-                      <th className="px-5 py-2 text-left font-medium">Week</th>
-                      <th className="px-5 py-2 text-left font-medium">Hours</th>
-                      <th className="px-5 py-2 text-left font-medium">Status</th>
-                      <th className="px-5 py-2 text-left font-medium">Notes</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {jobTimesheets.map((ts) => (
-                      <tr key={ts.id} className="border-t border-border/50">
-                        <td className="px-5 py-2 text-foreground">{new Date(ts.week_starting).toLocaleDateString()}</td>
-                        <td className="px-5 py-2 text-foreground">{ts.hours_worked}</td>
-                        <td className="px-5 py-2">
-                          <Badge className={tsStatusClass[ts.status] || "bg-muted"}>{ts.status}</Badge>
-                        </td>
-                        <td className="px-5 py-2 text-muted-foreground truncate max-w-[200px]">{ts.notes || "—"}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+              <div className="border-t border-border p-3 space-y-2">
+                {jobTimesheets.map((ts) => {
+                  const isRespondFormOpen = respondingTsId === ts.id;
+                  const canAct = ts.status === "queried";
+
+                  return (
+                    <div key={ts.id} className="rounded-lg border border-border/50 p-3">
+                      <div className="flex flex-wrap items-start justify-between gap-2">
+                        <div className="space-y-0.5">
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm font-medium text-foreground">
+                              {new Date(ts.week_starting).toLocaleDateString()}
+                            </span>
+                            <Badge className={tsQueryStatusColors[ts.status] || "bg-muted"}>{ts.status}</Badge>
+                          </div>
+                          <div className="flex gap-3 text-xs text-muted-foreground">
+                            <span>{ts.hours_worked} hrs</span>
+                            {ts.adjusted_hours != null && ts.adjusted_hours !== ts.hours_worked && (
+                              <span className="text-blue-600 dark:text-blue-400">{ts.adjusted_hours} hrs adjusted</span>
+                            )}
+                            {ts.notes && <span className="truncate max-w-[200px]">{ts.notes}</span>}
+                          </div>
+                        </div>
+
+                        {/* Agency action buttons */}
+                        {canAct && (
+                          <div className="flex gap-1.5">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="h-7 text-xs"
+                              onClick={() => {
+                                setRespondingTsId(ts.id);
+                                setRespondMode("adjust");
+                                setAdjustedHours(String(ts.hours_worked));
+                                setResponseNote("");
+                              }}
+                            >
+                              <RotateCcw className="mr-1 h-3 w-3" /> Adjust
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="h-7 text-xs"
+                              onClick={() => {
+                                setRespondingTsId(ts.id);
+                                setRespondMode("respond");
+                                setResponseNote("");
+                              }}
+                            >
+                              <MessageSquare className="mr-1 h-3 w-3" /> Respond
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Query history */}
+                      <TimesheetQueryDetails ts={ts} />
+
+                      {/* Agency response form */}
+                      {isRespondFormOpen && (
+                        <div className="mt-2 rounded-lg border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-950/30 p-3 space-y-2">
+                          {respondMode === "adjust" && (
+                            <div>
+                              <label className="mb-1 block text-xs font-medium text-foreground">Adjusted hours</label>
+                              <Input
+                                type="number"
+                                step="0.5"
+                                min="0"
+                                value={adjustedHours}
+                                onChange={(e) => setAdjustedHours(e.target.value)}
+                                className="h-8 w-32 text-xs"
+                              />
+                            </div>
+                          )}
+                          <div>
+                            <label className="mb-1 block text-xs font-medium text-foreground">
+                              {respondMode === "adjust" ? "Explanation" : "Why the original hours are correct"}
+                            </label>
+                            <Textarea
+                              value={responseNote}
+                              onChange={(e) => setResponseNote(e.target.value)}
+                              placeholder={respondMode === "adjust" ? "Explain the adjustment..." : "Explain why the submitted hours are correct..."}
+                              className="min-h-[60px] text-xs"
+                            />
+                          </div>
+                          <div className="flex gap-2">
+                            <Button size="sm" className="h-7 text-xs" onClick={() => handleAgencyRespond(ts, job)} disabled={responseSubmitting || !responseNote.trim()}>
+                              {responseSubmitting ? "Sending..." : respondMode === "adjust" ? "Resubmit" : "Send Response"}
+                            </Button>
+                            <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => { setRespondingTsId(null); setRespondMode(null); }}>Cancel</Button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             )}
           </div>
