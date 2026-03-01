@@ -148,7 +148,7 @@ export function Header() {
               {role === "customer" && (
                 hasActiveCare
                   ? <>
-                      <Button variant="ghost" asChild><Link to="/dashboard">My Care</Link></Button>
+                      <Button variant="ghost" asChild><Link to="/dashboard?tab=jobs">My Care</Link></Button>
                       <Button variant="ghost" asChild>
                         <Link to="/dashboard?tab=timesheets" className="relative">
                           <Clock className="mr-1 h-4 w-4" />
@@ -236,7 +236,7 @@ export function Header() {
               {role === "customer" && (
                 hasActiveCare
                   ? <>
-                      <Button variant="ghost" asChild className="justify-start"><Link to="/dashboard">My Care</Link></Button>
+                      <Button variant="ghost" asChild className="justify-start"><Link to="/dashboard?tab=jobs">My Care</Link></Button>
                       <Button variant="ghost" asChild className="justify-start">
                         <Link to="/dashboard?tab=timesheets" className="relative">
                           <Clock className="mr-1 h-4 w-4" />

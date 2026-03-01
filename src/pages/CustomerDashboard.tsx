@@ -65,6 +65,7 @@ export default function CustomerDashboard() {
   const [searchParams] = useSearchParams();
   const [tab, setTab] = useState<"requests" | "jobs" | "timesheets" | "notifications">("requests");
   const [tabInitialized, setTabInitialized] = useState(false);
+  const [dataLoaded, setDataLoaded] = useState(false);
   const [requestFilter, setRequestFilter] = useState<"active" | "accepted" | "closed">("active");
   const [requests, setRequests] = useState<CareRequest[]>([]);
   const [jobs, setJobs] = useState<Job[]>([]);
@@ -182,20 +183,24 @@ export default function CustomerDashboard() {
 
     setReviewableJobs(reviewable);
     setLoading(false);
+    setDataLoaded(true);
+  }
 
-    // Set default tab after data is loaded (only once)
-    if (!tabInitialized) {
-      const urlTab = searchParams.get("tab");
-      if (urlTab === "timesheets") {
-        setTab("timesheets");
-      } else if (urlTab === "notifications") {
-        setTab("notifications");
-      } else if (tsPendingCount > 0) {
+  // React to URL tab parameter changes (works both on initial load and when clicking header links)
+  useEffect(() => {
+    const urlTab = searchParams.get("tab");
+    const validTabs = ["requests", "jobs", "timesheets", "notifications"] as const;
+    if (urlTab && validTabs.includes(urlTab as any)) {
+      setTab(urlTab as typeof tab);
+      setTabInitialized(true);
+    } else if (dataLoaded && !tabInitialized) {
+      // Smart default: show timesheets if pending, otherwise requests
+      if (pendingTimesheetCount > 0) {
         setTab("timesheets");
       }
       setTabInitialized(true);
     }
-  }
+  }, [searchParams, dataLoaded]);
 
   async function handleSubmitReview(job: ReviewableJob) {
     if (reviewRating < 1) { toast.error("Please select a star rating"); return; }
