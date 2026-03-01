@@ -120,8 +120,12 @@ export function AgencyTimesheetsTab() {
     }
   }
 
-  async function handleAgencyRespond(ts: TimesheetWithQuery, job: TimesheetJob) {
-    if (!responseNote.trim()) {
+   async function handleAgencyRespond(ts: TimesheetWithQuery, job: TimesheetJob) {
+    if (respondMode === "adjust" && !adjustedHours) {
+      toast.error("Please enter adjusted hours");
+      return;
+    }
+    if (respondMode === "respond" && !responseNote.trim()) {
       toast.error("Please provide a response");
       return;
     }
@@ -376,7 +380,7 @@ export function AgencyTimesheetsTab() {
                             />
                           </div>
                           <div className="flex gap-2">
-                            <Button size="sm" className="h-7 text-xs" onClick={() => handleAgencyRespond(ts, job)} disabled={responseSubmitting || !responseNote.trim()}>
+                            <Button size="sm" className="h-7 text-xs" onClick={() => handleAgencyRespond(ts, job)} disabled={responseSubmitting || (respondMode === "adjust" ? !adjustedHours : !responseNote.trim())}>
                               {responseSubmitting ? "Sending..." : respondMode === "adjust" ? "Resubmit" : "Send Response"}
                             </Button>
                             <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => { setRespondingTsId(null); setRespondMode(null); }}>Cancel</Button>
