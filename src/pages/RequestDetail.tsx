@@ -61,6 +61,7 @@ export default function RequestDetail() {
   }
 
   const hasOvernight = request?.care_types?.includes("Overnight Care") && request?.nights_per_week;
+  const hasDaytime = (request?.hours_per_week || 0) > 0;
 
   async function handleAcceptBid(bidId: string) {
     setAcceptingBid(bidId);
@@ -161,8 +162,11 @@ This agreement confirms that:
       const { data: agencyProfile } = await supabase.from("agency_profiles").select("id").eq("user_id", user.id).single();
       if (!agencyProfile) throw new Error("Agency profile not found");
 
-      const rate = parseFloat(bidRate);
-      if (isNaN(rate) || rate <= 0) throw new Error("Invalid daytime rate");
+      let rate = 0;
+      if (hasDaytime) {
+        rate = parseFloat(bidRate);
+        if (isNaN(rate) || rate <= 0) throw new Error("Invalid daytime rate");
+      }
 
       let overnightRate: number | null = null;
       if (hasOvernight) {
@@ -323,20 +327,24 @@ This agreement confirms that:
                           {bid.distance_miles && <p className="mt-1 text-xs text-muted-foreground">{Number(bid.distance_miles).toFixed(1)} miles away</p>}
                         </div>
                         <div className="text-right">
-                          <p className="font-serif text-2xl text-foreground">£{Number(bid.hourly_rate).toFixed(2)}</p>
-                          <p className="text-xs text-muted-foreground">per hour (daytime)</p>
+                          {hasDaytime && (
+                            <>
+                              <p className="font-serif text-2xl text-foreground">£{Number(bid.hourly_rate).toFixed(2)}</p>
+                              <p className="text-xs text-muted-foreground">per hour (daytime)</p>
+                            </>
+                          )}
                           {hasOvernight && bid.overnight_rate && (
                             <>
-                              <p className="mt-1 font-serif text-lg text-foreground">£{Number(bid.overnight_rate).toFixed(2)}</p>
+                              <p className={`${hasDaytime ? "mt-1" : ""} font-serif ${hasDaytime ? "text-lg" : "text-2xl"} text-foreground`}>£{Number(bid.overnight_rate).toFixed(2)}</p>
                               <p className="text-xs text-muted-foreground">per night ({request.night_type === "sleeping" ? "sleeping" : "waking"})</p>
                             </>
                           )}
                           <div className="mt-2 space-y-0.5 border-t border-border pt-2 text-xs text-muted-foreground">
-                            <p>Daytime: £{weekly.daytime.toFixed(2)}/wk</p>
+                            {hasDaytime && <p>Daytime: £{weekly.daytime.toFixed(2)}/wk</p>}
                             {hasOvernight && bid.overnight_rate && (
                               <p>Overnight: £{weekly.overnight.toFixed(2)}/wk</p>
                             )}
-                            <p className="font-medium text-foreground">Total: £{weekly.total.toFixed(2)}/wk</p>
+                            <p className="font-medium text-foreground">{hasDaytime && hasOvernight ? "Total: " : ""}£{weekly.total.toFixed(2)}/wk</p>
                           </div>
                           {isCreator && request.status === "open" && (
                             <Button
@@ -371,20 +379,22 @@ This agreement confirms that:
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-foreground">
-                {hasOvernight ? "Daytime Hourly Rate (£)" : "Your Hourly Rate (£)"}
-              </label>
-              <input
-                type="number"
-                step="0.50"
-                min="1"
-                value={bidRate}
-                onChange={(e) => setBidRate(e.target.value)}
-                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                placeholder="e.g. 18.50"
-              />
-            </div>
+            {hasDaytime && (
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-foreground">
+                  {hasOvernight ? "Daytime Hourly Rate (£)" : "Your Hourly Rate (£)"}
+                </label>
+                <input
+                  type="number"
+                  step="0.50"
+                  min="1"
+                  value={bidRate}
+                  onChange={(e) => setBidRate(e.target.value)}
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                  placeholder="e.g. 18.50"
+                />
+              </div>
+            )}
             {hasOvernight && (
               <div className="space-y-2">
                 <label className="text-sm font-medium text-foreground">
@@ -405,20 +415,24 @@ This agreement confirms that:
               </div>
             )}
             {/* Weekly cost estimate */}
-            {bidRate && (
+            {(hasDaytime ? bidRate : bidOvernightRate) && (
               <div className="rounded-lg border border-border bg-muted/50 p-3 text-sm">
                 <p className="font-medium text-foreground">Weekly Cost Estimate</p>
                 <div className="mt-1 space-y-1 text-muted-foreground">
-                  <p>Daytime: {request.hours_per_week} hrs × £{parseFloat(bidRate || "0").toFixed(2)} = £{(request.hours_per_week * parseFloat(bidRate || "0")).toFixed(2)}</p>
+                  {hasDaytime && bidRate && (
+                    <p>Daytime: {request.hours_per_week} hrs × £{parseFloat(bidRate || "0").toFixed(2)} = £{(request.hours_per_week * parseFloat(bidRate || "0")).toFixed(2)}</p>
+                  )}
                   {hasOvernight && bidOvernightRate && (
                     <p>Overnight: {request.nights_per_week} nights × £{parseFloat(bidOvernightRate || "0").toFixed(2)} = £{(request.nights_per_week * parseFloat(bidOvernightRate || "0")).toFixed(2)}</p>
                   )}
-                  <p className="border-t border-border pt-1 font-medium text-foreground">
-                    Combined Total: £{(
-                      (request.hours_per_week * parseFloat(bidRate || "0")) +
-                      (hasOvernight && bidOvernightRate ? request.nights_per_week * parseFloat(bidOvernightRate || "0") : 0)
-                    ).toFixed(2)}/week
-                  </p>
+                  {hasDaytime && hasOvernight && bidRate && bidOvernightRate && (
+                    <p className="border-t border-border pt-1 font-medium text-foreground">
+                      Combined Total: £{(
+                        (request.hours_per_week * parseFloat(bidRate || "0")) +
+                        (request.nights_per_week * parseFloat(bidOvernightRate || "0"))
+                      ).toFixed(2)}/week
+                    </p>
+                  )}
                 </div>
               </div>
             )}
