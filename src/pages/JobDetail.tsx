@@ -10,11 +10,13 @@ import { CQCRatingBadge } from "@/components/CQCRatingBadge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription,
 } from "@/components/ui/dialog";
 import {
-  MapPin, Clock, Briefcase, CalendarDays, ChevronRight, Plus, CheckCircle, AlertCircle, User, Phone, Home, FileText, XCircle, CalendarIcon, Pencil,
+  MapPin, Clock, Briefcase, CalendarDays, ChevronRight, Plus, CheckCircle, AlertCircle, User, Phone, Home, FileText, XCircle, CalendarIcon, Pencil, MessageSquare, RotateCcw,
 } from "lucide-react";
 import {
   Table, TableHeader, TableBody, TableHead, TableRow, TableCell,
@@ -22,6 +24,7 @@ import {
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
+import { TimesheetQueryDetails, tsQueryStatusColors, type TimesheetWithQuery } from "@/components/TimesheetQueryHistory";
 
 type JobDetail = {
   id: string;
@@ -51,16 +54,6 @@ type JobDetail = {
   } | null;
 };
 
-type Timesheet = {
-  id: string;
-  week_starting: string;
-  hours_worked: number;
-  notes: string | null;
-  status: string;
-  approved_at: string | null;
-  created_at: string;
-};
-
 type Payment = {
   id: string;
   amount: number;
@@ -81,6 +74,7 @@ const statusColors: Record<string, string> = {
   approved: "bg-accent text-accent-foreground",
   disputed: "bg-destructive/20 text-destructive",
   paid: "bg-cqc-good text-primary-foreground",
+  ...tsQueryStatusColors,
 };
 
 const statusLabels: Record<string, string> = {
@@ -92,7 +86,7 @@ const statusLabels: Record<string, string> = {
 export default function JobDetailPage() {
   const { id } = useParams<{ id: string }>();
   const [job, setJob] = useState<JobDetail | null>(null);
-  const [timesheets, setTimesheets] = useState<Timesheet[]>([]);
+  const [timesheets, setTimesheets] = useState<TimesheetWithQuery[]>([]);
   const [payments, setPayments] = useState<Payment[]>([]);
   const [userId, setUserId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -114,6 +108,19 @@ export default function JobDetailPage() {
   const [editStartTbc, setEditStartTbc] = useState(false);
   const [savingStartDate, setSavingStartDate] = useState(false);
 
+  // Query state
+  const [queryingTsId, setQueryingTsId] = useState<string | null>(null);
+  const [queryNote, setQueryNote] = useState("");
+  const [querySuggestedHours, setQuerySuggestedHours] = useState("");
+  const [querySubmitting, setQuerySubmitting] = useState(false);
+
+  // Agency response state
+  const [respondingTsId, setRespondingTsId] = useState<string | null>(null);
+  const [respondMode, setRespondMode] = useState<"adjust" | "respond" | null>(null);
+  const [responseNote, setResponseNote] = useState("");
+  const [adjustedHours, setAdjustedHours] = useState("");
+  const [responseSubmitting, setResponseSubmitting] = useState(false);
+
   useEffect(() => {
     loadData();
   }, [id]);
@@ -132,7 +139,7 @@ export default function JobDetailPage() {
 
     const jobData = (jobRes.data as any as JobDetail) || null;
     setJob(jobData);
-    setTimesheets((tsRes.data as Timesheet[]) || []);
+    setTimesheets((tsRes.data as any as TimesheetWithQuery[]) || []);
     setPayments((payRes.data as Payment[]) || []);
     setContract((contractRes.data as any) || null);
 
@@ -175,6 +182,108 @@ export default function JobDetailPage() {
     await supabase.from("jobs").update({
       total_paid_to_date: Number(job.total_paid_to_date) + amount,
     }).eq("id", job.id);
+    toast.success("Timesheet approved");
+    loadData();
+  }
+
+  async function handleQueryTimesheet(ts: TimesheetWithQuery) {
+    if (!job || !queryNote.trim()) {
+      toast.error("Please describe the issue");
+      return;
+    }
+    const newQueryCount = (ts.query_count || 0) + 1;
+    if (newQueryCount > 2) {
+      // Escalate
+      await supabase.from("timesheets").update({
+        status: "escalated",
+        query_count: newQueryCount,
+      } as any).eq("id", ts.id);
+      toast.info("This timesheet has been escalated to Care Fayre support.");
+      setQueryingTsId(null);
+      setQueryNote("");
+      setQuerySuggestedHours("");
+      loadData();
+      return;
+    }
+
+    setQuerySubmitting(true);
+    const deadline = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+    const suggestedHrs = querySuggestedHours ? parseFloat(querySuggestedHours) : null;
+
+    await supabase.from("timesheets").update({
+      status: "queried",
+      queried_at: new Date().toISOString(),
+      query_note: queryNote,
+      suggested_hours: suggestedHrs,
+      response_deadline: deadline,
+      query_count: newQueryCount,
+      query_response: null,
+      adjusted_hours: null,
+    } as any).eq("id", ts.id);
+
+    // Notify agency
+    const agencyName = job.agency_profiles?.agency_name || "Agency";
+    await supabase.from("notifications").insert({
+      recipient_id: job.agency_id,
+      type: "timesheet_queried",
+      message: `A timesheet for week starting ${new Date(ts.week_starting).toLocaleDateString()} has been queried. Please respond within 24 hours.`,
+      related_job_id: job.id,
+    });
+
+    sendEmail({
+      userId: job.agency_id,
+      subject: "Timesheet Queried — Response Required",
+      bodyText: `The customer has queried your timesheet for the week starting ${new Date(ts.week_starting).toLocaleDateString()}. Please respond within 24 hours or the customer's suggested hours will be used.`,
+      ctaUrl: `${window.location.origin}/job/${job.id}`,
+      ctaText: "Respond to Query",
+    });
+
+    toast.success("Query sent to agency");
+    setQueryingTsId(null);
+    setQueryNote("");
+    setQuerySuggestedHours("");
+    setQuerySubmitting(false);
+    loadData();
+  }
+
+  async function handleAgencyRespond(ts: TimesheetWithQuery) {
+    if (!job || !responseNote.trim()) {
+      toast.error("Please provide a response");
+      return;
+    }
+    setResponseSubmitting(true);
+    const deadline = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+    const adjHours = respondMode === "adjust" && adjustedHours ? parseFloat(adjustedHours) : null;
+
+    await supabase.from("timesheets").update({
+      status: "resubmitted",
+      query_response: responseNote,
+      adjusted_hours: adjHours,
+      response_deadline: deadline,
+    } as any).eq("id", ts.id);
+
+    // Notify customer
+    await supabase.from("notifications").insert({
+      recipient_id: job.customer_id,
+      type: "timesheet_resubmitted",
+      message: `The agency has responded to your timesheet query for week starting ${new Date(ts.week_starting).toLocaleDateString()}. Please review.`,
+      related_job_id: job.id,
+    });
+
+    sendEmail({
+      userId: job.customer_id,
+      subject: "Timesheet Response from Agency",
+      bodyText: `The agency has responded to your timesheet query for the week starting ${new Date(ts.week_starting).toLocaleDateString()}. Please log in to review and approve.`,
+      ctaUrl: `${window.location.origin}/job/${job.id}`,
+      ctaText: "Review Response",
+    });
+
+    toast.success("Response sent");
+    setRespondingTsId(null);
+    setRespondMode(null);
+    setResponseNote("");
+    setAdjustedHours("");
+    setResponseSubmitting(false);
     loadData();
   }
 
@@ -189,15 +298,12 @@ export default function JobDetailPage() {
       return;
     }
     const agencyName = job.agency_profiles?.agency_name || "the agency";
-    // Assessment complete notification
     await supabase.from("notifications").insert({
       recipient_id: job.customer_id,
       type: "assessment_complete",
       message: `Your assessment with ${agencyName} has taken place. Please confirm on Care Fayre whether you wish to proceed with care.`,
       related_job_id: job.id,
     });
-
-    // Email: assessment marked complete
     sendEmail({
       userId: job.customer_id,
       subject: `Your assessment with ${agencyName} has taken place`,
@@ -205,7 +311,6 @@ export default function JobDetailPage() {
       ctaUrl: `${window.location.origin}/job/${job.id}`,
       ctaText: "Confirm or Decline",
     });
-    // Start date notification
     if (startDateValue) {
       await supabase.from("notifications").insert({
         recipient_id: job.customer_id,
@@ -277,8 +382,6 @@ export default function JobDetailPage() {
       message: `${customerName} has confirmed they wish to proceed. Care is now active — you can begin submitting timesheets.`,
       related_job_id: job.id,
     });
-
-    // Email: customer confirmed care
     sendEmail({
       userId: job.agency_id,
       subject: "The customer has confirmed they wish to proceed with care",
@@ -315,18 +418,15 @@ export default function JobDetailPage() {
   async function handleCancelPreCare() {
     if (!job || !userId) return;
     setCancelling(true);
-
     const { error } = await supabase.from("jobs").update({ status: "cancelled_pre_care" } as any).eq("id", job.id);
     if (error) {
       toast.error("Failed to cancel: " + error.message);
       setCancelling(false);
       return;
     }
-
     const agencyName = job.agency_profiles?.agency_name || "the agency";
     const customerName = customerProfile?.full_name || "the customer";
     const isCustomerAction = userId === job.customer_id;
-
     await Promise.all([
       supabase.from("notifications").insert({
         recipient_id: job.customer_id,
@@ -345,10 +445,7 @@ export default function JobDetailPage() {
         related_job_id: job.id,
       }),
     ]);
-
-    // Email: cancellation notification to the OTHER party
     if (isCustomerAction) {
-      // Customer cancelled → email the agency
       sendEmail({
         userId: job.agency_id,
         subject: "A care arrangement has been cancelled by the customer",
@@ -357,7 +454,6 @@ export default function JobDetailPage() {
         ctaText: "View Details",
       });
     } else {
-      // Agency cancelled → email the customer
       sendEmail({
         userId: job.customer_id,
         subject: `Your care arrangement with ${agencyName} has been cancelled`,
@@ -366,7 +462,6 @@ export default function JobDetailPage() {
         ctaText: "View Details",
       });
     }
-
     toast.success("Arrangement cancelled. No charges apply.");
     setCancelling(false);
     loadData();
@@ -404,6 +499,11 @@ export default function JobDetailPage() {
   const canCancel = (isCustomer || isAgency) && isPreCare;
   const isBillingActive = job.status === "active";
   const displayStatus = statusLabels[job.status] || job.status;
+
+  function getEffectiveHours(ts: TimesheetWithQuery): number {
+    if (ts.adjusted_hours != null) return ts.adjusted_hours;
+    return ts.hours_worked;
+  }
 
   return (
     <>
@@ -574,7 +674,7 @@ export default function JobDetailPage() {
             </div>
           </div>
 
-          {/* View Rate Agreement Button — visible once customer has signed */}
+          {/* View Rate Agreement Button */}
           {showAgreementButton && (
             <div className="mt-4">
               <Button asChild variant="outline" className="w-full">
@@ -585,43 +685,28 @@ export default function JobDetailPage() {
             </div>
           )}
 
-          {/* Cancel Pre-Care Button — agency at assessment_pending, or agency at assessment_complete */}
+          {/* Cancel Pre-Care Buttons */}
           {isAgency && isPreCare && (
             <div className="mt-4">
-              <Button
-                variant="destructive"
-                className="w-full"
-                onClick={handleCancelPreCare}
-                disabled={cancelling}
-              >
+              <Button variant="destructive" className="w-full" onClick={handleCancelPreCare} disabled={cancelling}>
                 <XCircle className="mr-2 h-4 w-4" />
                 {cancelling ? "Cancelling..." : "Cancel Arrangement (No Charge)"}
               </Button>
-              <p className="mt-1 text-center text-xs text-muted-foreground">
-                Either party may cancel before care begins with no penalty.
-              </p>
+              <p className="mt-1 text-center text-xs text-muted-foreground">Either party may cancel before care begins with no penalty.</p>
             </div>
           )}
-          {/* Cancel Pre-Care Button — customer at assessment_pending only (assessment_complete has inline buttons) */}
           {isCustomer && job.status === "assessment_pending" && (
             <div className="mt-4">
-              <Button
-                variant="destructive"
-                className="w-full"
-                onClick={handleCancelPreCare}
-                disabled={cancelling}
-              >
+              <Button variant="destructive" className="w-full" onClick={handleCancelPreCare} disabled={cancelling}>
                 <XCircle className="mr-2 h-4 w-4" />
                 {cancelling ? "Cancelling..." : "Cancel Arrangement (No Charge)"}
               </Button>
-              <p className="mt-1 text-center text-xs text-muted-foreground">
-                Either party may cancel before care begins with no penalty.
-              </p>
+              <p className="mt-1 text-center text-xs text-muted-foreground">Either party may cancel before care begins with no penalty.</p>
             </div>
           )}
         </div>
 
-        {/* Care Recipient Details — agency only, assessment/active/completed jobs */}
+        {/* Care Recipient Details */}
         {showRecipientDetails && (
           <div className="mt-6 rounded-xl border border-border bg-card p-6">
             <h2 className="font-serif text-xl text-foreground">Care Recipient Details</h2>
@@ -706,54 +791,172 @@ export default function JobDetailPage() {
               </div>
             )}
 
-            <div className="mt-4 overflow-hidden rounded-xl border border-border">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Week Starting</TableHead>
-                    <TableHead>Hours</TableHead>
-                    <TableHead>Amount</TableHead>
-                    <TableHead>Notes</TableHead>
-                    <TableHead>Status</TableHead>
-                    {isCustomer && <TableHead></TableHead>}
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {timesheets.length === 0 ? (
-                    <TableRow>
-                      <TableCell colSpan={isCustomer ? 6 : 5} className="py-8 text-center text-muted-foreground">
-                        No timesheets submitted yet.
-                      </TableCell>
-                    </TableRow>
-                  ) : (
-                    timesheets.map((ts) => (
-                      <TableRow key={ts.id}>
-                        <TableCell>{new Date(ts.week_starting).toLocaleDateString()}</TableCell>
-                        <TableCell>{ts.hours_worked}</TableCell>
-                        <TableCell>£{(ts.hours_worked * Number(job.locked_hourly_rate)).toFixed(2)}</TableCell>
-                        <TableCell className="max-w-[200px] truncate text-muted-foreground">{ts.notes || "—"}</TableCell>
-                        <TableCell>
-                          <Badge className={statusColors[ts.status] || "bg-muted"}>{ts.status}</Badge>
-                        </TableCell>
-                        {isCustomer && (
-                          <TableCell>
-                            {ts.status === "pending" && (
-                              <Button size="sm" variant="outline" onClick={() => handleApproveTimesheet(ts.id, ts.hours_worked)}>
-                                <CheckCircle className="mr-1 h-3 w-3" /> Approve
+            {/* Timesheet cards */}
+            <div className="mt-4 space-y-3">
+              {timesheets.length === 0 ? (
+                <div className="rounded-xl border border-border bg-card py-8 text-center text-muted-foreground">
+                  No timesheets submitted yet.
+                </div>
+              ) : (
+                timesheets.map((ts) => {
+                  const effectiveHours = getEffectiveHours(ts);
+                  const amount = effectiveHours * Number(job.locked_hourly_rate);
+                  const canCustomerAct = isCustomer && (ts.status === "submitted" || ts.status === "pending" || ts.status === "resubmitted");
+                  const canAgencyAct = isAgency && ts.status === "queried";
+                  const isQueryFormOpen = queryingTsId === ts.id;
+                  const isRespondFormOpen = respondingTsId === ts.id;
+
+                  return (
+                    <div key={ts.id} className="rounded-xl border border-border bg-card p-4">
+                      <div className="flex flex-wrap items-start justify-between gap-3">
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium text-foreground">Week of {new Date(ts.week_starting).toLocaleDateString()}</span>
+                            <Badge className={tsQueryStatusColors[ts.status] || statusColors[ts.status] || "bg-muted"}>{ts.status}</Badge>
+                          </div>
+                          <div className="flex gap-4 text-sm text-muted-foreground">
+                            <span>{ts.hours_worked} hours submitted</span>
+                            {ts.adjusted_hours != null && ts.adjusted_hours !== ts.hours_worked && (
+                              <span className="text-blue-600 dark:text-blue-400">{ts.adjusted_hours} hours adjusted</span>
+                            )}
+                            <span>£{amount.toFixed(2)}</span>
+                          </div>
+                          {ts.notes && <p className="text-xs text-muted-foreground">{ts.notes}</p>}
+                        </div>
+
+                        {/* Customer action buttons */}
+                        {canCustomerAct && (
+                          <div className="flex gap-2">
+                            <Button size="sm" variant="outline" onClick={() => handleApproveTimesheet(ts.id, effectiveHours)}>
+                              <CheckCircle className="mr-1 h-3 w-3" /> Approve
+                            </Button>
+                            {ts.query_count < 2 && (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="border-amber-300 text-amber-700 hover:bg-amber-50 dark:border-amber-700 dark:text-amber-300 dark:hover:bg-amber-950"
+                                onClick={() => {
+                                  setQueryingTsId(ts.id);
+                                  setQuerySuggestedHours(String(ts.hours_worked));
+                                  setQueryNote("");
+                                }}
+                              >
+                                <MessageSquare className="mr-1 h-3 w-3" /> Query
                               </Button>
                             )}
-                          </TableCell>
+                          </div>
                         )}
-                      </TableRow>
-                    ))
-                  )}
-                </TableBody>
-              </Table>
+
+                        {/* Agency action buttons */}
+                        {canAgencyAct && (
+                          <div className="flex gap-2">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => {
+                                setRespondingTsId(ts.id);
+                                setRespondMode("adjust");
+                                setAdjustedHours(String(ts.hours_worked));
+                                setResponseNote("");
+                              }}
+                            >
+                              <RotateCcw className="mr-1 h-3 w-3" /> Adjust & Resubmit
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => {
+                                setRespondingTsId(ts.id);
+                                setRespondMode("respond");
+                                setResponseNote("");
+                              }}
+                            >
+                              <MessageSquare className="mr-1 h-3 w-3" /> Respond
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Query history */}
+                      <TimesheetQueryDetails ts={ts} />
+
+                      {/* Customer query form */}
+                      {isQueryFormOpen && (
+                        <div className="mt-3 rounded-lg border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/30 p-3 space-y-3">
+                          <div>
+                            <label className="mb-1 block text-xs font-medium text-foreground">What's the issue? *</label>
+                            <Textarea
+                              value={queryNote}
+                              onChange={(e) => setQueryNote(e.target.value)}
+                              placeholder="Describe the issue with the submitted hours..."
+                              className="min-h-[80px]"
+                            />
+                          </div>
+                          <div>
+                            <label className="mb-1 block text-xs font-medium text-foreground">Suggested hours (optional)</label>
+                            <Input
+                              type="number"
+                              step="0.5"
+                              min="0"
+                              value={querySuggestedHours}
+                              onChange={(e) => setQuerySuggestedHours(e.target.value)}
+                              className="h-9 w-40"
+                            />
+                          </div>
+                          <div className="flex gap-2">
+                            <Button size="sm" onClick={() => handleQueryTimesheet(ts)} disabled={querySubmitting || !queryNote.trim()}>
+                              {querySubmitting ? "Sending..." : "Send Query"}
+                            </Button>
+                            <Button size="sm" variant="ghost" onClick={() => setQueryingTsId(null)}>Cancel</Button>
+                          </div>
+                          <p className="text-xs text-muted-foreground">The agency has 24 hours to respond. If they don't respond, your suggested hours will be used.</p>
+                        </div>
+                      )}
+
+                      {/* Agency response form */}
+                      {isRespondFormOpen && (
+                        <div className="mt-3 rounded-lg border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-950/30 p-3 space-y-3">
+                          {respondMode === "adjust" && (
+                            <div>
+                              <label className="mb-1 block text-xs font-medium text-foreground">Adjusted hours</label>
+                              <Input
+                                type="number"
+                                step="0.5"
+                                min="0"
+                                value={adjustedHours}
+                                onChange={(e) => setAdjustedHours(e.target.value)}
+                                className="h-9 w-40"
+                              />
+                            </div>
+                          )}
+                          <div>
+                            <label className="mb-1 block text-xs font-medium text-foreground">
+                              {respondMode === "adjust" ? "Explanation (optional)" : "Why the original hours are correct *"}
+                            </label>
+                            <Textarea
+                              value={responseNote}
+                              onChange={(e) => setResponseNote(e.target.value)}
+                              placeholder={respondMode === "adjust" ? "Explain the adjustment..." : "Explain why the submitted hours are correct..."}
+                              className="min-h-[80px]"
+                            />
+                          </div>
+                          <div className="flex gap-2">
+                            <Button size="sm" onClick={() => handleAgencyRespond(ts)} disabled={responseSubmitting || !responseNote.trim()}>
+                              {responseSubmitting ? "Sending..." : respondMode === "adjust" ? "Resubmit" : "Send Response"}
+                            </Button>
+                            <Button size="sm" variant="ghost" onClick={() => { setRespondingTsId(null); setRespondMode(null); }}>Cancel</Button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })
+              )}
             </div>
           </div>
         )}
 
-        {/* Payments — only when billing is active */}
+        {/* Payments */}
         {isBillingActive && (
           <div className="mt-8">
             <h2 className="font-serif text-xl text-foreground">Payment History</h2>
@@ -769,9 +972,7 @@ export default function JobDetailPage() {
                 <TableBody>
                   {payments.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={3} className="py-8 text-center text-muted-foreground">
-                        No payments yet.
-                      </TableCell>
+                      <TableCell colSpan={3} className="py-8 text-center text-muted-foreground">No payments yet.</TableCell>
                     </TableRow>
                   ) : (
                     payments.map((pay) => (
@@ -809,9 +1010,7 @@ export default function JobDetailPage() {
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Mark Assessment Complete</DialogTitle>
-            <DialogDescription>
-              Set an agreed start date for care, or leave it to be confirmed later.
-            </DialogDescription>
+            <DialogDescription>Set an agreed start date for care, or leave it to be confirmed later.</DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-2">
             <div>
@@ -820,10 +1019,7 @@ export default function JobDetailPage() {
                 <PopoverTrigger asChild>
                   <Button
                     variant="outline"
-                    className={cn(
-                      "w-full justify-start text-left font-normal",
-                      !assessmentStartDate && "text-muted-foreground"
-                    )}
+                    className={cn("w-full justify-start text-left font-normal", !assessmentStartDate && "text-muted-foreground")}
                     disabled={assessmentTbc}
                   >
                     <CalendarIcon className="mr-2 h-4 w-4" />
@@ -831,34 +1027,19 @@ export default function JobDetailPage() {
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar
-                    mode="single"
-                    selected={assessmentStartDate}
-                    onSelect={setAssessmentStartDate}
-                    initialFocus
-                    className={cn("p-3 pointer-events-auto")}
-                  />
+                  <Calendar mode="single" selected={assessmentStartDate} onSelect={setAssessmentStartDate} initialFocus className={cn("p-3 pointer-events-auto")} />
                 </PopoverContent>
               </Popover>
             </div>
             <div className="flex items-center space-x-2">
-              <Checkbox
-                id="tbc"
-                checked={assessmentTbc}
-                onCheckedChange={(checked) => {
-                  setAssessmentTbc(!!checked);
-                  if (checked) setAssessmentStartDate(undefined);
-                }}
-              />
+              <Checkbox id="tbc" checked={assessmentTbc} onCheckedChange={(checked) => { setAssessmentTbc(!!checked); if (checked) setAssessmentStartDate(undefined); }} />
               <label htmlFor="tbc" className="text-sm text-foreground cursor-pointer">To Be Confirmed (e.g. waiting for hospital discharge)</label>
             </div>
             <p className="text-xs text-muted-foreground">You can update the start date later from the job detail page.</p>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowAssessmentModal(false)}>Cancel</Button>
-            <Button onClick={handleMarkAssessmentComplete} disabled={markingAssessment}>
-              {markingAssessment ? "Saving..." : "Confirm"}
-            </Button>
+            <Button onClick={handleMarkAssessmentComplete} disabled={markingAssessment}>{markingAssessment ? "Saving..." : "Confirm"}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -868,9 +1049,7 @@ export default function JobDetailPage() {
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Edit Start Date</DialogTitle>
-            <DialogDescription>
-              Update the agreed care start date. The customer will be notified.
-            </DialogDescription>
+            <DialogDescription>Update the agreed care start date. The customer will be notified.</DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-2">
             <div>
@@ -879,10 +1058,7 @@ export default function JobDetailPage() {
                 <PopoverTrigger asChild>
                   <Button
                     variant="outline"
-                    className={cn(
-                      "w-full justify-start text-left font-normal",
-                      !editStartDate && "text-muted-foreground"
-                    )}
+                    className={cn("w-full justify-start text-left font-normal", !editStartDate && "text-muted-foreground")}
                     disabled={editStartTbc}
                   >
                     <CalendarIcon className="mr-2 h-4 w-4" />
@@ -890,33 +1066,18 @@ export default function JobDetailPage() {
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar
-                    mode="single"
-                    selected={editStartDate}
-                    onSelect={setEditStartDate}
-                    initialFocus
-                    className={cn("p-3 pointer-events-auto")}
-                  />
+                  <Calendar mode="single" selected={editStartDate} onSelect={setEditStartDate} initialFocus className={cn("p-3 pointer-events-auto")} />
                 </PopoverContent>
               </Popover>
             </div>
             <div className="flex items-center space-x-2">
-              <Checkbox
-                id="edit-tbc"
-                checked={editStartTbc}
-                onCheckedChange={(checked) => {
-                  setEditStartTbc(!!checked);
-                  if (checked) setEditStartDate(undefined);
-                }}
-              />
+              <Checkbox id="edit-tbc" checked={editStartTbc} onCheckedChange={(checked) => { setEditStartTbc(!!checked); if (checked) setEditStartDate(undefined); }} />
               <label htmlFor="edit-tbc" className="text-sm text-foreground cursor-pointer">To Be Confirmed</label>
             </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowEditStartDate(false)}>Cancel</Button>
-            <Button onClick={handleSaveStartDate} disabled={savingStartDate}>
-              {savingStartDate ? "Saving..." : "Save"}
-            </Button>
+            <Button onClick={handleSaveStartDate} disabled={savingStartDate}>{savingStartDate ? "Saving..." : "Save"}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
